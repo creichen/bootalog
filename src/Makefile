@@ -22,7 +22,8 @@ OCAMLOPTFLAGS=$(INCLUDES) ${PACKAGES}
 # The list of object files for prog2
 DATALOG_OBJS=strlib.cmx error.cmx getopt.cmx compare.cmx \
 	variable.cmx base.cmx env.cmx \
-	simple_table.cmx \
+	stratification.cmx \
+	simple_table.cmx combined_table.cmx database.cmx \
 	eval.cmx \
 	repl.cmx
 

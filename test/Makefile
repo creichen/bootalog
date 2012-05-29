@@ -8,7 +8,8 @@ OCAMLFLAGS=-g -w A $(INCLUDES) ${PACKAGES}
 OCAMLOPTFLAGS=$(INCLUDES) ${PACKAGES}
 CMX_DEPS=../src/strlib.cmx ../src/error.cmx ../src/getopt.cmx ../src/compare.cmx \
 	../src/variable.cmx ../src/base.cmx ../src/env.cmx \
-	../src/simple_table.cmx \
+	../src/stratification.cmx \
+	../src/simple_table.cmx ../src/combined_table.cmx ../src/database.cmx \
 	../src/eval.cmx
 TESTS=test_getopt.test test_table.test
 

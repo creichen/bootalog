@@ -102,9 +102,14 @@ let predicate_symbol_set_add' a b = PredicateSymbolSet.add b a
 
 (* let atoms_predicate_symbol = PredicateSym "Atoms" *)
 
-
 let varset_predicate (_, vars) = List.fold_left var_set_add' VarSet.empty vars
 let varset_rule_head (head, _) = varset_predicate(head)
 let varset_rule_body (_, body) = List.fold_left (fun map -> fun (_, vars) -> List.fold_left var_set_add' map vars) VarSet.empty body
 
 let predicate_symbol_set_body (_, body) =  List.fold_left (fun map -> fun (p, _) -> PredicateSymbolSet.add p map) PredicateSymbolSet.empty body
+
+
+type semi_naive_stratum =
+    { pss	: PredicateSymbolSet.t;
+      base	: rule list;
+      delta	: rule list }
