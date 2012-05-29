@@ -22,9 +22,9 @@
 
 ***************************************************************************)
 
-open Getopt;;
-open OUnit;;
-open Printf;;
+open Getopt
+open OUnit
+open Printf
 
 let check_output client expected =
   let accumulator = ref "" in

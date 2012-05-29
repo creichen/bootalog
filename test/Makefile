@@ -6,8 +6,11 @@ INCLUDES=-I ../src
 PACKAGES=-package str -package oUnit
 OCAMLFLAGS=-g -w A $(INCLUDES) ${PACKAGES}
 OCAMLOPTFLAGS=$(INCLUDES) ${PACKAGES}
-CMX_DEPS=../src/getopt.cmx ../src/datalog.cmx
-TESTS=test_getopt.test test_datalog.test
+CMX_DEPS=../src/strlib.cmx ../src/error.cmx ../src/getopt.cmx ../src/compare.cmx \
+	../src/variable.cmx ../src/base.cmx ../src/env.cmx \
+	../src/simple_table.cmx \
+	../src/eval.cmx
+TESTS=test_getopt.test test_table.test
 
 .PHONY: all clean depend test prepare-test
 

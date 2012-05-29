@@ -1,5 +1,5 @@
 (***************************************************************************
- This file is Copyright (C) 2011 Christoph Reichenbach
+ This file is Copyright (C) 2012 Christoph Reichenbach
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -22,21 +22,12 @@
 
 ***************************************************************************)
 
-type day = Caltime.day
-type time = Caltime.time
-type interval = Caltime.interval
 
-type partial_timespec = day option * time option * interval option
+open OUnit
+open Printf
 
-type line_nr = int
+let all_tests = "getopt" >:::
+  [
+  ]
 
-type action = ACTION_LITERAL of string
-	      | ACTION_REGEX of string
-	      | ACTION_LABEL of string
-	      | ACTION_LIST of calspec_entry
- and calspec_entry = { declarations		: (line_nr * action * partial_timespec) list;
-		       do_actions		: (line_nr * action * partial_timespec) list;
-		       default_actions		: line_nr * string }
-
-val parse_file : string -> calspec_entry
-val parse_string : string -> calspec_entry
+let _ = run_test_tt_main (all_tests)

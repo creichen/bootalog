@@ -24,7 +24,7 @@ DATALOG_OBJS=strlib.cmx error.cmx getopt.cmx compare.cmx \
 	variable.cmx base.cmx env.cmx \
 	simple_table.cmx \
 	eval.cmx \
-	 repl.cmx
+	repl.cmx
 
 datalog: $(DATALOG_OBJS)
 	$(OCAMLOPT) -o  $(OCAMLFLAGS) $(DATALOG_OBJS) -linkpkg
