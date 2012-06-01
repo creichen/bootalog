@@ -207,7 +207,7 @@ let make_stratum (ruleset) (pss) =
 	       []	-> []
 	     | h::tl	->
 	       if predicate_is_relevant h
-	       then (Predicate.delta (head), [Predicate.delta(h)] @ List.rev (body_prefix) @ body_tail) :: find_deltas (h::body_prefix, tl)
+	       then ((*Predicate.delta*) (head), [Predicate.delta(h)] @ List.rev (body_prefix) @ tl) :: find_deltas (h::body_prefix, tl)
 	       else find_deltas (h::body_prefix, tl)
 	 in let delta_rules = find_deltas ([], body)
 	    in {
