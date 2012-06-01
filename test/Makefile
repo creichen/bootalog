@@ -11,7 +11,7 @@ CMX_DEPS=../src/strlib.cmx ../src/error.cmx ../src/getopt.cmx ../src/compare.cmx
 	../src/stratification.cmx \
 	../src/simple_table.cmx ../src/combined_table.cmx ../src/database.cmx \
 	../src/eval.cmx
-TESTS=test_getopt.test test_table.test
+TESTS=test_getopt.test test_table.test test_eval.test test_stratification.test
 
 .PHONY: all clean depend test prepare-test
 

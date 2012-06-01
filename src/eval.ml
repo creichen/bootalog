@@ -31,7 +31,7 @@ type table = Table.t
 
 let eval_rule (pred_lookup : predicate_symbol -> table) ((head_p, head_vars), tail) =
   let bind_final (env) =
-    let atoms = List.map (Env.find env) head_vars
+    let atoms = Array.map (Env.find env) head_vars
     in Table.insert (pred_lookup head_p) atoms
   in
   let rec bind_next (list : predicate list) (env : env) =
@@ -40,7 +40,7 @@ let eval_rule (pred_lookup : predicate_symbol -> table) ((head_p, head_vars), ta
       | (p,body)::tl	-> Table.bind_all (pred_lookup p) body env (bind_next tl)
   in bind_next tail (Env.fresh ())
 
-let eval_stratum db ({ pss; base; delta } : semi_naive_stratum) =
+let eval_stratum db ({ pss; base; delta } : stratum) =
   let pss_nr = PredicateSymbolSet.cardinal pss in
   let old_tables = Hashtbl.create (pss_nr) in
   let delta_tables = Hashtbl.create (pss_nr) in

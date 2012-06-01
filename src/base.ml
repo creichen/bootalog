@@ -28,7 +28,21 @@ exception UnexpectedDeltaTable
 
 type atom = string
 
-type tuple = atom list
+module Atom =
+  struct
+    type t = atom
+    let show (s : string) = s
+    let dummy = ""
+  end
+
+type tuple = atom array
+
+module Tuple =
+  struct
+    type t = tuple
+    let show elts = "(" ^ (String.concat ", " (List.map Atom.show (Array.to_list elts))) ^ ")"
+    let sort = List.sort (Compare.array_collate (String.compare))
+  end
 
 type predicate_symbol =
     PredicateSym of string
@@ -64,7 +78,7 @@ module PredicateSymbol =
 
 type variable = Variable.t
 
-type predicate = predicate_symbol * (variable list)
+type predicate = predicate_symbol * (variable array)
 
 module Predicate =
   struct
@@ -74,8 +88,8 @@ module Predicate =
       (PredicateSymbol.delta p, body)
 
     let show (symbol, varlist) =
-      PredicateSymbol.show(symbol) ^ "(" ^ (String.concat ", " (List.map Variable.show varlist)) ^ ")"
-    let compare = Compare.join (PredicateSymbol.compare) (Compare.collate Variable.compare)
+      PredicateSymbol.show(symbol) ^ "(" ^ (String.concat ", " (List.map Variable.show (Array.to_list varlist))) ^ ")"
+    let compare = Compare.join (PredicateSymbol.compare) (Compare.array_collate Variable.compare)
   end
 
 type rule = predicate * predicate list
@@ -85,22 +99,44 @@ module Rule =
     type t = rule
     let show (head, tail) = Predicate.show (head) ^ " :- " ^ (String.concat ", " (List.map Predicate.show tail)) ^ "."
     let compare = Compare.join (Predicate.compare) (Compare.collate (Predicate.compare))
+    let equal a b = 0 = compare a b
   end
 
 type ruleset = rule list
 
-type stratum = { tables	: predicate_symbol list;
-		 base	: ruleset;
-		 delta	: ruleset }
-type stratified_ruleset = stratum list
-
 module VarSet = Set.Make(Variable)
 let var_set_add' a b = VarSet.add b a
-module RuleSet = Set.Make(Rule)
-module PredicateSymbolSet = Set.Make(PredicateSymbol)
-let predicate_symbol_set_add' a b = PredicateSymbolSet.add b a
+module RuleSet =
+  struct
+    type t = ruleset
+    let show ruleset = String.concat "\n" (List.map Rule.show ruleset)
+  end
 
-(* let atoms_predicate_symbol = PredicateSym "Atoms" *)
+module PredicateSymbolSet' = Set.Make(PredicateSymbol)
+module PredicateSymbolSet =
+  struct
+    open PredicateSymbolSet'
+    type t = PredicateSymbolSet'.t
+    let empty = empty
+    let add = add
+    let add' a b = add b a
+    let from_list = List.fold_left add' empty
+    let iter = iter
+    let fold = fold
+    let union = union
+    let inter = inter
+    let cardinal = cardinal
+    let is_empty = is_empty
+    let singleton = singleton
+    let contains = mem
+    let equal = equal
+    let for_all = for_all
+    let diff = diff
+    let show set =
+      let show_one elt tail = (PredicateSymbol.show elt)::tail
+      in let elts = fold show_one set [] in
+	 "{" ^ (String.concat ", " elts) ^ "}"
+  end
 
 let varset_predicate (_, vars) = List.fold_left var_set_add' VarSet.empty vars
 let varset_rule_head (head, _) = varset_predicate(head)
@@ -109,7 +145,60 @@ let varset_rule_body (_, body) = List.fold_left (fun map -> fun (_, vars) -> Lis
 let predicate_symbol_set_body (_, body) =  List.fold_left (fun map -> fun (p, _) -> PredicateSymbolSet.add p map) PredicateSymbolSet.empty body
 
 
-type semi_naive_stratum =
+type stratum =
     { pss	: PredicateSymbolSet.t;
       base	: rule list;
       delta	: rule list }
+
+module Stratum =
+  struct
+    type t = stratum
+
+    let show_n label stratum =
+      let show_rules rules =
+	String.concat "" (List.map (function rule -> "  " ^ Rule.show rule ^ "\n") rules)
+      in ("== " ^ label ^ "<" ^ (PredicateSymbolSet.show stratum.pss) ^ ">}\n"
+	  ^ "- base:\n"
+	  ^ (show_rules stratum.base)
+	  ^ "- delta:\n"
+	  ^ (show_rules stratum.delta))
+
+    let show = show_n ""
+
+    let normalise stratum =
+      { pss	= stratum.pss;
+	base	= List.sort Rule.compare stratum.base;
+	delta	= List.sort Rule.compare stratum.delta; }
+
+    let equal stratum0 stratum1 =
+      let s0 = normalise stratum0 in
+      let s1 = normalise stratum1
+      in (PredicateSymbolSet.equal s0.pss s1.pss
+	  && s0.base = s1.base
+	    && s0.delta = s1.delta)
+  end
+
+module StratifiedRuleset =
+  struct
+    type t = stratum list
+
+    let show strata =
+      let rec show_i i args =
+	match args with
+	    []		-> ""
+	  | h::tl	-> (Stratum.show_n (Printf.sprintf "%i" i) h) ^ "\n" ^ (show_i (i+1) tl)
+      in show_i 0 strata
+
+    let normalise =
+      List.map Stratum.normalise
+
+    let equal =
+      let rec is_eq r0 r1 =
+	match (r0, r1) with
+	    ([], [])	-> true
+	  | (h0::tl0,
+	     h1::tl1)	-> if Stratum.equal h0 h1 then is_eq tl0 tl1 else false
+	  | _		-> false
+      in is_eq
+  end
+

@@ -37,3 +37,21 @@ let collate (comp) (list1) (list2) =
       | (h1::tl1,
 	 h2::tl2)	-> join comp c (h1, tl1) (h2, tl2)
   in c (list1) (list2)
+
+let array_collate (comp) (arr0) (arr1) =
+  let len0 = Array.length arr0 in
+  let len1 = Array.length arr1 in
+  if len0 <> len1
+  then len0 - len1
+  else
+    let rec rcmp i =
+      if i >= len0
+      then 0
+      else
+	let v0 = Array.unsafe_get arr0 i in
+	let v1 = Array.unsafe_get arr1 i in
+	let c = comp v0 v1 in
+	if c = 0
+	then rcmp (i+1)
+	else c
+    in rcmp 0

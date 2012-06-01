@@ -45,6 +45,12 @@ let update_delta (table) (new_delta_table : Simple_table.t) =
       DeltaT (_, r, _)	-> r := new_delta_table
     | _			-> raise NotADeltaTable
 
+let show (table) =
+  let contents t = Simple_table.show t in
+  match table with
+      SimpleT t		-> "S:" ^ contents (t) ^ ""
+    | DeltaT (u,d,t)	-> Printf.sprintf "D<%b>:%s / %s" (!u) (contents (!d)) (contents t)
+
 let insert table (tuple: tuple) : unit =
   match table with
       SimpleT t				-> Simple_table.insert t tuple
@@ -56,6 +62,9 @@ let insert table (tuple: tuple) : unit =
 	update_flag := true
       end
 
-let bind_all table (variables : variable list) (env : env) (continuation : env -> unit) : unit =
+let insert' table (tuple) : unit =
+  insert table (Array.of_list tuple)
+
+let bind_all table (variables : variable array) (env : env) (continuation : env -> unit) : unit =
   match table with
       (SimpleT t | DeltaT (_, _, t)) -> Simple_table.bind_all t variables env continuation

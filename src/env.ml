@@ -36,7 +36,17 @@ let lookup env variable =
   try Some (find env variable)
   with Not_found -> None
 
-let add = Hashtbl.add
+let bind = Hashtbl.replace
+let unbind = Hashtbl.remove
+
+let clear = Hashtbl.clear
+
+let show table =
+  let s var atom tail =
+    ((Variable.show var) ^ ": " ^ (Atom.show atom)) :: tail
+  in let body = Hashtbl.fold s table []
+     in "{| " ^ (String.concat ", " body) ^ " |}"
+
 (*
 let bind env variable atom =
   match lookup env variable with
