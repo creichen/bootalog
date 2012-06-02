@@ -38,6 +38,16 @@ let show table =
   let body_list : string list = Hashtbl.fold (extract) table []
   in "{" ^  String.concat ", " (body_list) ^ "}"
 
+let show_tabular table =
+  let extract_sizes tuple _ best_sizes = Tuple.merge_string_sizes (Tuple.string_sizes tuple) best_sizes in
+  let sizes = Hashtbl.fold extract_sizes table [] in
+  let sizes_up = List.map (function a -> a + 2) sizes in
+  let extract tuple _ body = ("  " ^ (Tuple.show_padded sizes_up tuple) ^ "\n") :: body
+  in
+  let body_list : string list = Hashtbl.fold (extract) table [] in
+  let body_list = List.sort String.compare body_list
+  in String.concat "" (body_list)
+
 type bind_action =
     Bind
   | Check

@@ -1,6 +1,7 @@
 OCAMLFIND=ocamlfind
-OCAMLC=${OCAMLFIND} ocamlc
-OCAMLOPT=${OCAMLFIND} ocamlopt
+OCAMLFLAGS=-g
+OCAMLC=${OCAMLFIND} ocamlc ${OCAMLFLAGS}
+OCAMLOPT=${OCAMLFIND} ocamlopt ${OCAMLFLAGS}
 OCAMLDEP=ocamldep
 INCLUDES=-I ../src
 PACKAGES=-package str -package oUnit
@@ -11,6 +12,7 @@ CMX_DEPS=../src/strlib.cmx ../src/error.cmx ../src/getopt.cmx ../src/compare.cmx
 	../src/stratification.cmx \
 	../src/simple_table.cmx ../src/combined_table.cmx ../src/database.cmx \
 	../src/eval.cmx
+CMX_HELPERS=stratum_test_helper.cmx
 TESTS=test_getopt.test test_table.test test_eval.test test_stratification.test
 
 .PHONY: all clean depend test prepare-test
@@ -19,7 +21,7 @@ all: test
 
 test: prepare-test ${TESTS}
 
-prepare-test:
+prepare-test: ${CMX_HELPERS}
 	rm -f *.test
 
 # Common rules
@@ -29,7 +31,7 @@ prepare-test:
 	$(OCAMLC) $(OCAMLFLAGS) -c $<
 
 .ml.test:
-	$(OCAMLOPT) -o $@ $(OCAMLFLAGS) $(CMX_DEPS) $< -linkpkg
+	$(OCAMLOPT) -o $@ $(OCAMLFLAGS) $(CMX_DEPS) $(CMX_HELPERS) $< -linkpkg
 	./$@
 
 .mli.cmi:

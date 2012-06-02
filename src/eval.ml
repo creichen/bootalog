@@ -58,22 +58,31 @@ let eval_stratum db ({ pss; base; delta } : stratum) =
 	 Hashtbl.replace old_tables predicate_symbol old_table;
 	 Hashtbl.replace delta_tables predicate_symbol delta_table;
 	 Hashtbl.replace join_tables predicate_symbol join_table;
-	 Database.replace_table db predicate_symbol t
+	 Database.replace_table db predicate_symbol t;
+	 Database.replace_table db (PredicateSymbol.delta predicate_symbol) (Combined_table.from_simple delta_table);
        end in
   let advance_delta_table predicate_symbol =
     let new_delta_table = Simple_table.create () in
+    let old_delta_table =
+      try
+	Hashtbl.find delta_lookup_tables predicate_symbol
+      with Not_found ->  Simple_table.create ()
+    in
     begin
       Hashtbl.replace delta_lookup_tables predicate_symbol (Hashtbl.find delta_tables predicate_symbol);
       Table.update_delta (Hashtbl.find join_tables predicate_symbol) new_delta_table;
-      Hashtbl.replace delta_tables predicate_symbol new_delta_table
+      Hashtbl.replace delta_tables predicate_symbol new_delta_table;
+      Database.replace_table db (PredicateSymbol.delta predicate_symbol) (Combined_table.from_simple old_delta_table);
+      ignore (Table.SimpleT (Hashtbl.find delta_lookup_tables predicate_symbol));
     end
   in
   let recover_original_table predicate_symbol =
-    Database.replace_table db predicate_symbol (Hashtbl.find old_tables predicate_symbol)
+    Database.replace_table db predicate_symbol (Hashtbl.find old_tables predicate_symbol);
+    Database.remove_table db (PredicateSymbol.delta predicate_symbol)
   in
   let lookup_predicate_symbol ps =
     match ps with
-	DeltaSym s	-> Table.SimpleT (Hashtbl.find delta_lookup_tables ps)
+	DeltaSym s	-> Table.SimpleT (Hashtbl.find delta_lookup_tables (PredicateSym s))
       | _		-> Database.get_table db ps
   in
   let eval_rules rules =

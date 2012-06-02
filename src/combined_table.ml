@@ -30,6 +30,7 @@ type t =
   | DeltaT of bool ref * Simple_table.t ref * Simple_table.t  (* tracks updates: flag if updated, middle element contains only updates *)
 
 let create () = SimpleT (Simple_table.create ())
+let from_simple st = SimpleT st
 let create_delta (flag, delta, rhs) = DeltaT (flag, ref delta, rhs)
 let create_delta' (flag, delta, rhs) =
   match rhs with
@@ -50,6 +51,11 @@ let show (table) =
   match table with
       SimpleT t		-> "S:" ^ contents (t) ^ ""
     | DeltaT (u,d,t)	-> Printf.sprintf "D<%b>:%s / %s" (!u) (contents (!d)) (contents t)
+
+let show_tabular (table) =
+  let contents t = Simple_table.show_tabular t in
+  match table with
+      (SimpleT t | DeltaT (_, _, t))	-> contents t
 
 let insert table (tuple: tuple) : unit =
   match table with

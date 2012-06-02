@@ -1,6 +1,7 @@
 OCAMLFIND=ocamlfind
-OCAMLC=${OCAMLFIND} ocamlc
-OCAMLOPT=${OCAMLFIND} ocamlopt
+OCAMLFLAGS=-g
+OCAMLC=${OCAMLFIND} ocamlc ${OCAMLFLAGS}
+OCAMLOPT=${OCAMLFIND} ocamlopt ${OCAMLFLAGS}
 OCAMLDEP=ocamldep
 INCLUDES=                # all relevant -I options here
 PACKAGES=-package str

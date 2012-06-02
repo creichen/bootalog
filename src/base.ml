@@ -28,6 +28,8 @@ exception UnexpectedDeltaTable
 
 type atom = string
 
+let eprint x = Printf.printf "%s" x
+
 module Atom =
   struct
     type t = atom
@@ -42,6 +44,26 @@ module Tuple =
     type t = tuple
     let show elts = "(" ^ (String.concat ", " (List.map Atom.show (Array.to_list elts))) ^ ")"
     let sort = List.sort (Compare.array_collate (String.compare))
+
+    let string_sizes (tuple) =
+      List.map (function t -> (String.length (Atom.show t))) (Array.to_list tuple)
+
+    let show_padded sizes tuple =
+      let rec s a b =
+	match (a, b) with
+	    (size::sl, atom::al)	-> (Printf.sprintf "%-*s" size (Atom.show atom)) :: (s sl al)
+	  | (_, [])			-> []
+	  | ([], atom::al)		-> (Atom.show atom) :: (s [] al)
+      in String.concat "" (s sizes (Array.to_list tuple))
+
+    let merge_string_sizes sizes0 sizes1 =
+      let rec m a b =
+	match (a, b) with
+	    ([], tl)	-> tl
+	  | (tl, [])	-> tl
+	  | (h1::tl1,
+	     h2::tl2)	-> (if h1 > h2 then h1 else h2)::(m tl1 tl2)
+      in m sizes0 sizes1
   end
 
 type predicate_symbol =
@@ -121,6 +143,7 @@ module PredicateSymbolSet =
     let add = add
     let add' a b = add b a
     let from_list = List.fold_left add' empty
+    let to_list s = fold (function a -> function b -> a :: b) s []
     let iter = iter
     let fold = fold
     let union = union
