@@ -29,73 +29,73 @@ type env = Env.t
 module Table = Combined_table
 type table = Table.t
 
-let eval_rule (pred_lookup : predicate_symbol -> table) ((head_p, head_vars), tail) =
+let eval_rule (pred_lookup : predicate -> table) ((head_p, head_vars), tail) =
   let bind_final (env) =
     let atoms = Array.map (Env.find env) head_vars
     in Table.insert (pred_lookup head_p) atoms
   in
-  let rec bind_next (list : predicate list) (env : env) =
+  let rec bind_next (list : literal list) (env : env) =
     match list with
 	[]		-> bind_final env
       | (p,body)::tl	-> Table.bind_all (pred_lookup p) body env (bind_next tl)
   in bind_next tail (Env.fresh ())
 
 let eval_stratum db ({ pss; base; delta } : stratum) =
-  let pss_nr = PredicateSymbolSet.cardinal pss in
+  let pss_nr = PredicateSet.cardinal pss in
   let old_tables = Hashtbl.create (pss_nr) in
   let delta_tables = Hashtbl.create (pss_nr) in
   let delta_lookup_tables = Hashtbl.create (pss_nr) in
   let join_tables = Hashtbl.create (pss_nr) in
   let was_updated_var = ref false in
-  let init_replace_table predicate_symbol =
-    let old_table = Database.get_table db predicate_symbol in
+  let init_replace_table predicate =
+    let old_table = Database.get_table db predicate in
     let delta_table = Simple_table.create () in
     let join_table = Table.create_delta' (was_updated_var,
 					  delta_table,
 					  old_table)
     in let t : table = join_table 
        in begin
-	 Hashtbl.replace old_tables predicate_symbol old_table;
-	 Hashtbl.replace delta_tables predicate_symbol delta_table;
-	 Hashtbl.replace join_tables predicate_symbol join_table;
-	 Database.replace_table db predicate_symbol t;
-	 Database.replace_table db (PredicateSymbol.delta predicate_symbol) (Combined_table.from_simple delta_table);
+	 Hashtbl.replace old_tables predicate old_table;
+	 Hashtbl.replace delta_tables predicate delta_table;
+	 Hashtbl.replace join_tables predicate join_table;
+	 Database.replace_table db predicate t;
+	 Database.replace_table db (Predicate.delta predicate) (Combined_table.from_simple delta_table);
        end in
-  let advance_delta_table predicate_symbol =
+  let advance_delta_table predicate =
     let new_delta_table = Simple_table.create () in
     let old_delta_table =
       try
-	Hashtbl.find delta_lookup_tables predicate_symbol
+	Hashtbl.find delta_lookup_tables predicate
       with Not_found ->  Simple_table.create ()
     in
     begin
-      Hashtbl.replace delta_lookup_tables predicate_symbol (Hashtbl.find delta_tables predicate_symbol);
-      Table.update_delta (Hashtbl.find join_tables predicate_symbol) new_delta_table;
-      Hashtbl.replace delta_tables predicate_symbol new_delta_table;
-      Database.replace_table db (PredicateSymbol.delta predicate_symbol) (Combined_table.from_simple old_delta_table);
-      ignore (Table.SimpleT (Hashtbl.find delta_lookup_tables predicate_symbol));
+      Hashtbl.replace delta_lookup_tables predicate (Hashtbl.find delta_tables predicate);
+      Table.update_delta (Hashtbl.find join_tables predicate) new_delta_table;
+      Hashtbl.replace delta_tables predicate new_delta_table;
+      Database.replace_table db (Predicate.delta predicate) (Combined_table.from_simple old_delta_table);
+      ignore (Table.SimpleT (Hashtbl.find delta_lookup_tables predicate));
     end
   in
-  let recover_original_table predicate_symbol =
-    Database.replace_table db predicate_symbol (Hashtbl.find old_tables predicate_symbol);
-    Database.remove_table db (PredicateSymbol.delta predicate_symbol)
+  let recover_original_table predicate =
+    Database.replace_table db predicate (Hashtbl.find old_tables predicate);
+    Database.remove_table db (Predicate.delta predicate)
   in
-  let lookup_predicate_symbol ps =
+  let lookup_predicate ps =
     match ps with
-	DeltaSym s	-> Table.SimpleT (Hashtbl.find delta_lookup_tables (PredicateSym s))
-      | _		-> Database.get_table db ps
+	DeltaPredicate s	-> Table.SimpleT (Hashtbl.find delta_lookup_tables (Predicate s))
+      | _			-> Database.get_table db ps
   in
   let eval_rules rules =
-    List.iter (eval_rule lookup_predicate_symbol) rules
+    List.iter (eval_rule lookup_predicate) rules
   in begin
-    PredicateSymbolSet.iter init_replace_table pss;
+    PredicateSet.iter init_replace_table pss;
     eval_rules (base);
     while !was_updated_var do
       was_updated_var := false;
-      PredicateSymbolSet.iter advance_delta_table pss;
+      PredicateSet.iter advance_delta_table pss;
       eval_rules (delta)
     done;
-    PredicateSymbolSet.iter recover_original_table pss
+    PredicateSet.iter recover_original_table pss
   end
     
 let eval db program =

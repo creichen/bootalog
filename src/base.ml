@@ -66,61 +66,61 @@ module Tuple =
       in m sizes0 sizes1
   end
 
-type predicate_symbol =
-    PredicateSym of string
-  | DeltaSym of string
-
-module PredicateSymbol =
-  struct
-    type t = predicate_symbol
-
-    let is_delta s =
-      match s with
-	  DeltaSym _	-> true
-	| _		-> false
-
-    let show (p) =
-      match p with
-	  PredicateSym p	-> p
-	| DeltaSym d		-> "D[" ^ d ^ "]"
-
-    let delta s =
-      match s with
-	  PredicateSym p	-> DeltaSym p
-	| DeltaSym d		-> raise (Failure ("Attempted deltafication of delta`"^d^"'"))
-
-    let compare l r =
-      match (l, r) with
-	  (PredicateSym _, DeltaSym _)		-> -1
-	| (DeltaSym _, PredicateSym _)		-> 1
-	| ((PredicateSym a,PredicateSym b)
-	      | (DeltaSym a, DeltaSym b))	-> String.compare a b
-
-  end
-
-type variable = Variable.t
-
-type predicate = predicate_symbol * (variable array)
+type predicate =
+    Predicate of string
+  | DeltaPredicate of string
 
 module Predicate =
   struct
     type t = predicate
 
-    let delta (p, body) =
-      (PredicateSymbol.delta p, body)
+    let is_delta s =
+      match s with
+	  DeltaPredicate _	-> true
+	| _			-> false
 
-    let show (symbol, varlist) =
-      PredicateSymbol.show(symbol) ^ "(" ^ (String.concat ", " (List.map Variable.show (Array.to_list varlist))) ^ ")"
-    let compare = Compare.join (PredicateSymbol.compare) (Compare.array_collate Variable.compare)
+    let show (p) =
+      match p with
+	  Predicate p		-> p
+	| DeltaPredicate d	-> "D[" ^ d ^ "]"
+
+    let delta s =
+      match s with
+	  Predicate p		-> DeltaPredicate p
+	| DeltaPredicate d	-> raise (Failure ("Attempted deltafication of delta`"^d^"'"))
+
+    let compare l r =
+      match (l, r) with
+	  (Predicate _, DeltaPredicate _)		-> -1
+	| (DeltaPredicate _, Predicate _)		-> 1
+	| ((Predicate a,Predicate b)
+	      | (DeltaPredicate a, DeltaPredicate b))	-> String.compare a b
+
   end
 
-type rule = predicate * predicate list
+type variable = Variable.t
+
+type literal = predicate * (variable array)
+
+module Literal =
+  struct
+    type t = literal
+
+    let delta (p, body) =
+      (Predicate.delta p, body)
+
+    let show (symbol, varlist) =
+      Predicate.show(symbol) ^ "(" ^ (String.concat ", " (List.map Variable.show (Array.to_list varlist))) ^ ")"
+    let compare = Compare.join (Predicate.compare) (Compare.array_collate Variable.compare)
+  end
+
+type rule = literal * literal list
 
 module Rule =
   struct
     type t = rule
-    let show (head, tail) = Predicate.show (head) ^ " :- " ^ (String.concat ", " (List.map Predicate.show tail)) ^ "."
-    let compare = Compare.join (Predicate.compare) (Compare.collate (Predicate.compare))
+    let show (head, tail) = Literal.show (head) ^ " :- " ^ (String.concat ", " (List.map Literal.show tail)) ^ "."
+    let compare = Compare.join (Literal.compare) (Compare.collate (Literal.compare))
     let equal a b = 0 = compare a b
   end
 
@@ -134,11 +134,11 @@ module RuleSet =
     let show ruleset = String.concat "\n" (List.map Rule.show ruleset)
   end
 
-module PredicateSymbolSet' = Set.Make(PredicateSymbol)
-module PredicateSymbolSet =
+module PredicateSet' = Set.Make(Predicate)
+module PredicateSet =
   struct
-    open PredicateSymbolSet'
-    type t = PredicateSymbolSet'.t
+    open PredicateSet'
+    type t = PredicateSet'.t
     let empty = empty
     let add = add
     let add' a b = add b a
@@ -156,20 +156,20 @@ module PredicateSymbolSet =
     let for_all = for_all
     let diff = diff
     let show set =
-      let show_one elt tail = (PredicateSymbol.show elt)::tail
+      let show_one elt tail = (Predicate.show elt)::tail
       in let elts = fold show_one set [] in
 	 "{" ^ (String.concat ", " elts) ^ "}"
   end
 
-let varset_predicate (_, vars) = List.fold_left var_set_add' VarSet.empty vars
-let varset_rule_head (head, _) = varset_predicate(head)
+let varset_literal (_, vars) = List.fold_left var_set_add' VarSet.empty vars
+let varset_rule_head (head, _) = varset_literal(head)
 let varset_rule_body (_, body) = List.fold_left (fun map -> fun (_, vars) -> List.fold_left var_set_add' map vars) VarSet.empty body
 
-let predicate_symbol_set_body (_, body) =  List.fold_left (fun map -> fun (p, _) -> PredicateSymbolSet.add p map) PredicateSymbolSet.empty body
+let predicate_set_body (_, body) =  List.fold_left (fun map -> fun (p, _) -> PredicateSet.add p map) PredicateSet.empty body
 
 
 type stratum =
-    { pss	: PredicateSymbolSet.t;
+    { pss	: PredicateSet.t;
       base	: rule list;
       delta	: rule list }
 
@@ -180,7 +180,7 @@ module Stratum =
     let show_n label stratum =
       let show_rules rules =
 	String.concat "" (List.map (function rule -> "  " ^ Rule.show rule ^ "\n") rules)
-      in ("== " ^ label ^ "<" ^ (PredicateSymbolSet.show stratum.pss) ^ ">}\n"
+      in ("== " ^ label ^ "<" ^ (PredicateSet.show stratum.pss) ^ ">}\n"
 	  ^ "- base:\n"
 	  ^ (show_rules stratum.base)
 	  ^ "- delta:\n"
@@ -196,7 +196,7 @@ module Stratum =
     let equal stratum0 stratum1 =
       let s0 = normalise stratum0 in
       let s1 = normalise stratum1
-      in (PredicateSymbolSet.equal s0.pss s1.pss
+      in (PredicateSet.equal s0.pss s1.pss
 	  && s0.base = s1.base
 	    && s0.delta = s1.delta)
   end

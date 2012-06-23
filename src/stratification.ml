@@ -26,33 +26,33 @@ open Base
 
 module DepTable =
 struct
-  type t = (PredicateSymbol.t, PredicateSymbolSet.t) Hashtbl.t
+  type t = (Predicate.t, PredicateSet.t) Hashtbl.t
 
   let create = Hashtbl.create
-  let lookup tbl (key : predicate_symbol) = try Hashtbl.find tbl key
-    with Not_found -> PredicateSymbolSet.empty
-  let insert tbl (key : predicate_symbol) (element : predicate_symbol) = Hashtbl.replace tbl key (PredicateSymbolSet.add element (lookup tbl key))
-  let insert_all tbl (key : predicate_symbol) elements = Hashtbl.replace tbl key (PredicateSymbolSet.union (lookup tbl key) elements)
+  let lookup tbl (key : predicate) = try Hashtbl.find tbl key
+    with Not_found -> PredicateSet.empty
+  let insert tbl (key : predicate) (element : predicate) = Hashtbl.replace tbl key (PredicateSet.add element (lookup tbl key))
+  let insert_all tbl (key : predicate) elements = Hashtbl.replace tbl key (PredicateSet.union (lookup tbl key) elements)
   let iter = Hashtbl.iter
 
   let keys table =
-    let aggregate key _ set = PredicateSymbolSet.add key set
-    in Hashtbl.fold aggregate table PredicateSymbolSet.empty
+    let aggregate key _ set = PredicateSet.add key set
+    in Hashtbl.fold aggregate table PredicateSet.empty
 
   let size = Hashtbl.length
   let is_empty tbl = 0 = size tbl
 
   let equal a b =
     let keys_a = keys a
-    in if not (PredicateSymbolSet.equal keys_a (keys b))
+    in if not (PredicateSet.equal keys_a (keys b))
       then false
       else let domain_matches key =
-	     PredicateSymbolSet.equal (lookup a key) (lookup b key)
-	   in PredicateSymbolSet.for_all domain_matches keys_a
+	     PredicateSet.equal (lookup a key) (lookup b key)
+	   in PredicateSet.for_all domain_matches keys_a
 
   let show table =
     let show_one key value tail =
-      ((PredicateSymbol.show (key)) ^ ": " ^ (PredicateSymbolSet.show value)) :: tail
+      ((Predicate.show (key)) ^ ": " ^ (PredicateSet.show value)) :: tail
     in let elts = Hashtbl.fold show_one table []
        in "{| " ^ (String.concat ", " elts) ^ " |}"
 end
@@ -66,14 +66,14 @@ let compute_rule_dependencies (ruleset) =
   let new_uses = table_new ()
   in
   let add def_tbl use_tbl head_p body_ps =
-    let add_one_use_dependency (definer : predicate_symbol) = DepTable.insert def_tbl definer head_p
+    let add_one_use_dependency (definer : predicate) = DepTable.insert def_tbl definer head_p
     in begin
       DepTable.insert_all use_tbl head_p body_ps;
-      PredicateSymbolSet.iter add_one_use_dependency body_ps
+      PredicateSet.iter add_one_use_dependency body_ps
     end
   in
   let insert_base (((predicate, _), _) as rule) =
-    let body_predicates = predicate_symbol_set_body (rule)
+    let body_predicates = predicate_set_body (rule)
     in add new_defs new_uses predicate body_predicates
   in (* initialise new_defs and new_uses *)
   let () = List.iter insert_base ruleset
@@ -84,12 +84,12 @@ let compute_rule_dependencies (ruleset) =
     else let new_defs = table_new () in
 	 let new_uses = table_new () in
 	 let add_new ((all_tbl, all_co_tbl), (new_tbl, new_co_tbl)) predicate new_elements =
-	   let really_new = PredicateSymbolSet.diff new_elements (DepTable.lookup all_tbl predicate)
+	   let really_new = PredicateSet.diff new_elements (DepTable.lookup all_tbl predicate)
 	   in begin
-(*	     Printf.printf "  Trying to add <%s : %s> to %s\n" (PredicateSymbol.show predicate) (PredicateSymbolSet.show new_elements) (DepTable.show all_tbl);*)
-	     if not (PredicateSymbolSet.is_empty really_new)
+(*	     Printf.printf "  Trying to add <%s : %s> to %s\n" (Predicate.show predicate) (PredicateSet.show new_elements) (DepTable.show all_tbl);*)
+	     if not (PredicateSet.is_empty really_new)
 	     then begin
-(*	       Printf.printf "    Adding %s : %s...\n" (PredicateSymbol.show predicate) (PredicateSymbolSet.show new_elements);*)
+(*	       Printf.printf "    Adding %s : %s...\n" (Predicate.show predicate) (PredicateSet.show new_elements);*)
 	       add all_co_tbl all_tbl predicate really_new;
 	       add new_co_tbl new_tbl predicate really_new;
 	     end
@@ -105,8 +105,8 @@ let compute_rule_dependencies (ruleset) =
 		let add_write write =
 		  let add_to transitive_write =
 		    DepTable.insert tdefs read transitive_write
-		  in PredicateSymbolSet.iter (add_to) (DepTable.lookup all_defs write)
-		in PredicateSymbolSet.iter add_write writes
+		  in PredicateSet.iter (add_to) (DepTable.lookup all_defs write)
+		in PredicateSet.iter add_write writes
 	      in begin
 		DepTable.iter add delta_defs;
 		tdefs
@@ -127,16 +127,16 @@ let compute_rule_dependencies (ruleset) =
     (all_defs, all_uses)
   end
 
-type def_use_stratum = { preds : PredicateSymbolSet.t;
-			 defs  : PredicateSymbolSet.t;
-			 uses  : PredicateSymbolSet.t }
+type def_use_stratum = { preds : PredicateSet.t;
+			 defs  : PredicateSet.t;
+			 uses  : PredicateSet.t }
 
 module DefUseStratum =
   struct
     type t = def_use_stratum
 
     let equal (stratum0) (stratum1) =
-      let eq = PredicateSymbolSet.equal
+      let eq = PredicateSet.equal
       in (eq (stratum0.preds) (stratum1.preds)
 	  && eq (stratum0.defs) (stratum1.defs)
 	  && eq (stratum0.uses) (stratum1.uses))
@@ -158,56 +158,56 @@ module DefUseStratum =
       in all_contained_in strata0 strata1 && all_contained_in strata1 strata0
 
     let show { preds; defs; uses } =
-      let s = PredicateSymbolSet.show
+      let s = PredicateSet.show
       in "{< " ^ (s preds) ^ ": d=" ^ (s defs) ^ "; u=" ^ (s uses) ^ " >}"
   end
 
 
 let equivalence_clusters (defs, uses) (predicate_set) =
-  let cluster_map = DepTable.create (PredicateSymbolSet.cardinal (predicate_set))
+  let cluster_map = DepTable.create (PredicateSet.cardinal (predicate_set))
   in let clusters : def_use_stratum list ref = ref []
      in
      let encluster (var) =
-       if PredicateSymbolSet.is_empty (DepTable.lookup cluster_map var)
-       then let cluster = let proto_cluster = PredicateSymbolSet.inter (DepTable.lookup defs var) (DepTable.lookup uses var)
+       if PredicateSet.is_empty (DepTable.lookup cluster_map var)
+       then let cluster = let proto_cluster = PredicateSet.inter (DepTable.lookup defs var) (DepTable.lookup uses var)
 			  in
-			  if PredicateSymbolSet.is_empty proto_cluster
-			  then PredicateSymbolSet.singleton var
+			  if PredicateSet.is_empty proto_cluster
+			  then PredicateSet.singleton var
 			  else proto_cluster
 	    in let add_cluster_item (key) = DepTable.insert_all cluster_map key cluster
 	       in begin
-		 PredicateSymbolSet.iter add_cluster_item cluster;
+		 PredicateSet.iter add_cluster_item cluster;
 		 clusters := { preds = cluster; defs = DepTable.lookup defs var; uses = DepTable.lookup uses var } :: !clusters
 	       end
        else ()
      in begin
-       PredicateSymbolSet.iter encluster predicate_set;
+       PredicateSet.iter encluster predicate_set;
        !clusters
      end
 
 let sort_equivalence_clusters (strata : (* unsorted *) def_use_stratum list) =
   let compare (stratum0) (stratum1) =
-    if PredicateSymbolSet.equal stratum0.preds stratum1.preds
+    if PredicateSet.equal stratum0.preds stratum1.preds
     then 0
-    else if not (PredicateSymbolSet.is_empty (PredicateSymbolSet.inter stratum1.uses stratum0.defs))
+    else if not (PredicateSet.is_empty (PredicateSet.inter stratum1.uses stratum0.defs))
     then -1 (* stratum1 depends on stratum0, so stratum0 should be left*)
     else 1
   in List.sort compare strata
 
-let predicate_symbol_set_from_ruleset (ruleset) =
-  List.fold_left (function set -> function ((p, _), _) -> PredicateSymbolSet.add p set) PredicateSymbolSet.empty ruleset
+let predicate_set_from_ruleset (ruleset) =
+  List.fold_left (function set -> function ((p, _), _) -> PredicateSet.add p set) PredicateSet.empty ruleset
 
 let make_stratum (ruleset) (pss) =
-  let predicate_is_relevant (p, _)	= PredicateSymbolSet.contains p pss in
+  let literal_is_relevant (p, _)	= PredicateSet.contains p pss in
   let gen_stratum (snstratum) ((head, body) as rule : rule) =
-    if not (predicate_is_relevant (head))
+    if not (literal_is_relevant (head))
     then snstratum
     else let rec find_deltas (body_prefix, body_tail) =
 	   match body_tail with
 	       []	-> []
 	     | h::tl	->
-	       if predicate_is_relevant h
-	       then ((*Predicate.delta*) (head), [Predicate.delta(h)] @ List.rev (body_prefix) @ tl) :: find_deltas (h::body_prefix, tl)
+	       if literal_is_relevant h
+	       then ((*Literal.delta*) (head), [Literal.delta(h)] @ List.rev (body_prefix) @ tl) :: find_deltas (h::body_prefix, tl)
 	       else find_deltas (h::body_prefix, tl)
 	 in let delta_rules = find_deltas ([], body)
 	    in {
@@ -223,7 +223,7 @@ let stratify (ruleset: ruleset) =
     (* #2: dependencies *)
   let (defs, uses) = compute_rule_dependencies (ruleset) in
     (* #3: cluster *)
-  let predicate_set = predicate_symbol_set_from_ruleset (ruleset) in
+  let predicate_set = predicate_set_from_ruleset (ruleset) in
   let unsorted_cluster_list = equivalence_clusters (defs, uses) (predicate_set) in
     (* #4 stratify *)
   let strata = sort_equivalence_clusters (unsorted_cluster_list) in
