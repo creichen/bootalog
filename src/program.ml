@@ -24,19 +24,40 @@
 
 open Base
 
-type lexeme =
-    LAtom of string
-  | LName of string
-  | LWildcard
-  | LComma
-  | LQuestionmark
-  | LPeriod
-  | LWildcard
-  | LCdash
-  | LPlus
-  | LMinus
-  | LOparen
-  | LCparen
+
+module Lexeme =
+  struct
+    type lexeme =
+	LAtom of string
+      | LName of string
+      | LWildcard
+      | LComma
+      | LQuestionmark
+      | LPeriod
+      | LCdash
+      | LPlus
+      | LMinus
+      | LOparen
+      | LCparen
+      | LEOF
+      | LErrortoken of int
+
+    let show l =
+      match l with
+	  LAtom s	-> "\"" ^ (String.escaped s) ^ "\""
+	| LName s	-> s
+	| LWildcard	-> "-"
+	| LComma	-> ","
+	| LQuestionmark	-> "?"
+	| LPeriod	-> "."
+	| LCdash	-> ":-"
+	| LPlus		-> "+"
+	| LMinus	-> "-"
+	| LOparen	-> "("
+	| LCparen	-> ")"
+	| LEOF		-> "end-of-file"
+	| LErrortoken _	-> "*error*"
+  end
 
 type declaration =
     DRule of rule

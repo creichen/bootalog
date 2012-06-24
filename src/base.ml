@@ -100,7 +100,7 @@ module Predicate =
 
   end
 
-type fact = base_predicate * atom
+type fact = base_predicate * (atom array)
 
 module Fact =
   struct

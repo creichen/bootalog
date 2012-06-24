@@ -1,20 +1,21 @@
 OCAMLFIND=ocamlfind
-OCAMLFLAGS=
+OCAMLFLAGS=-w-E
 OCAMLC=${OCAMLFIND} ocamlc ${OCAMLFLAGS}
 OCAMLOPT=${OCAMLFIND} ocamlopt ${OCAMLFLAGS}
 OCAMLDEP=ocamldep
 INCLUDES=-I ../src
 PACKAGES=-package str -package oUnit
-OCAMLFLAGS=-g -w A $(INCLUDES) ${PACKAGES}
+OCAMLFLAGS=-g -w A-E $(INCLUDES) ${PACKAGES}
 OCAMLOPTFLAGS=$(INCLUDES) ${PACKAGES}
 CMX_DEPS=../src/strlib.cmx ../src/error.cmx ../src/getopt.cmx ../src/compare.cmx \
 	../src/variable.cmx ../src/base.cmx ../src/env.cmx \
 	../src/stratification.cmx \
 	../src/simple_table.cmx ../src/combined_table.cmx ../src/database.cmx \
+	../src/program.cmx ../src/lexer.cmx ../src/frontend.cmx ../src/parser.cmx \
 	../src/eval.cmx
 CMX_HELPERS=stratum_test_helper.cmx
 TESTS=test_getopt.test test_table.test test_eval.test test_stratification.test \
-	test_strlib.test
+	test_strlib.test test_frontend.test
 
 .PHONY: all clean depend test prepare-test
 

@@ -3,9 +3,11 @@ OCAMLFLAGS=
 OCAMLC=${OCAMLFIND} ocamlc ${OCAMLFLAGS}
 OCAMLOPT=${OCAMLFIND} ocamlopt ${OCAMLFLAGS}
 OCAMLDEP=ocamldep
+OCAMLLEX=ocamllex
+OCAMLYACC=ocamlyacc
 INCLUDES=                # all relevant -I options here
 PACKAGES=-package str
-OCAMLFLAGS=-g -w A $(INCLUDES) ${PACKAGES}
+OCAMLFLAGS=-g -w A-E $(INCLUDES) ${PACKAGES}
 OCAMLOPTFLAGS=$(INCLUDES) ${PACKAGES}
 BINARY=bootalog
 
@@ -27,6 +29,7 @@ DATALOG_OBJS=strlib.cmx error.cmx getopt.cmx compare.cmx \
 	stratification.cmx \
 	simple_table.cmx combined_table.cmx database.cmx \
 	eval.cmx \
+	program.cmx lexer.cmx parser.cmx frontend.cmx \
 	repl.cmx
 
 bootalog: $(DATALOG_OBJS)
@@ -43,6 +46,15 @@ bootalog: $(DATALOG_OBJS)
 
 .ml.cmx:
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -c $<
+
+%.ml: %.mll
+	${OCAMLLEX} ${OCAMLLEXFLAGS} -o $@ $<
+
+%.ml: %.mly
+	${OCAMLYACC} ${OCAMLLEXFLAGS} $<
+
+%.mli: %.mly
+	${OCAMLYACC} ${OCAMLLEXFLAGS} $<
 
 # Clean up
 clean:

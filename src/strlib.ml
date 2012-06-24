@@ -43,7 +43,7 @@ let dequote string =
 	then unskip := true
 	else append c
     done;
-    String.sub string 1 ((!wrpos) - 2)
+    String.sub string 0 (!wrpos)
   end
 
 let is_blank c = match c with
@@ -58,7 +58,7 @@ let strip_whitespace (string) =
   let l = ref 0 in
   let r = ref max in
   (while !l < max && is_blank(string.[!l]) do l := 1 + !l done;
-   if !l = max
+   if !l > max
    then ""
    else begin
      while is_blank(string.[!r]) do r := !r -1 done;
