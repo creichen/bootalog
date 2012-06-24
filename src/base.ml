@@ -76,6 +76,8 @@ module Predicate =
   struct
     type t = predicate
 
+    let atom = Predicate "atom"
+
     let is_delta s =
       match s with
 	  DeltaPredicate _	-> true
@@ -126,25 +128,8 @@ module Literal =
     let compare = Compare.join (Predicate.compare) (Compare.array_collate Variable.compare)
   end
 
-type rule = literal * literal list
-
-module Rule =
-  struct
-    type t = rule
-    let show (head, tail) = Literal.show (head) ^ " :- " ^ (String.concat ", " (List.map Literal.show tail)) ^ "."
-    let compare = Compare.join (Literal.compare) (Compare.collate (Literal.compare))
-    let equal a b = 0 = compare a b
-  end
-
-type ruleset = rule list
-
 module VarSet = Set.Make(Variable)
 let var_set_add' a b = VarSet.add b a
-module RuleSet =
-  struct
-    type t = ruleset
-    let show ruleset = String.concat "\n" (List.map Rule.show ruleset)
-  end
 
 module PredicateSet' = Set.Make(Predicate)
 module PredicateSet =
@@ -173,12 +158,37 @@ module PredicateSet =
 	 "{" ^ (String.concat ", " elts) ^ "}"
   end
 
-let varset_literal (_, vars) = List.fold_left var_set_add' VarSet.empty vars
-let varset_rule_head (head, _) = varset_literal(head)
-let varset_rule_body (_, body) = List.fold_left (fun map -> fun (_, vars) -> List.fold_left var_set_add' map vars) VarSet.empty body
+let varset_literal (_, vars) = Array.fold_left var_set_add' VarSet.empty vars
+let varset_rule_head (head, _) = varset_literal (head)
+let varset_rule_body (_, body) = List.fold_left (fun map -> fun (_, vars) -> Array.fold_left var_set_add' map vars) VarSet.empty body
 
 let predicate_set_body (_, body) =  List.fold_left (fun map -> fun (p, _) -> PredicateSet.add p map) PredicateSet.empty body
 
+type rule = literal * literal list
+
+module Rule =
+  struct
+    type t = rule
+    let show (head, tail) = Literal.show (head) ^ " :- " ^ (String.concat ", " (List.map Literal.show tail)) ^ "."
+    let compare = Compare.join (Literal.compare) (Compare.collate (Literal.compare))
+    let equal a b = 0 = compare a b
+
+    let normalise ((head, tail) as rule : rule) =
+      let head_vars = varset_rule_head (rule) in
+      let body_vars = varset_rule_body (rule) in
+      let free_vars = VarSet.diff head_vars body_vars in
+      let add_atom_predicate var tail = (Predicate.atom, [| var |]) :: tail in
+      let atom_tail = VarSet.fold add_atom_predicate free_vars [] in
+      (head, tail @ atom_tail)
+  end
+
+type ruleset = rule list
+
+module RuleSet =
+  struct
+    type t = ruleset
+    let show ruleset = String.concat "\n" (List.map Rule.show ruleset)
+  end
 
 type stratum =
     { pss	: PredicateSet.t;
