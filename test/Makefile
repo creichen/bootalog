@@ -1,5 +1,5 @@
 OCAMLFIND=ocamlfind
-OCAMLFLAGS=-g
+OCAMLFLAGS=
 OCAMLC=${OCAMLFIND} ocamlc ${OCAMLFLAGS}
 OCAMLOPT=${OCAMLFIND} ocamlopt ${OCAMLFLAGS}
 OCAMLDEP=ocamldep
@@ -13,7 +13,8 @@ CMX_DEPS=../src/strlib.cmx ../src/error.cmx ../src/getopt.cmx ../src/compare.cmx
 	../src/simple_table.cmx ../src/combined_table.cmx ../src/database.cmx \
 	../src/eval.cmx
 CMX_HELPERS=stratum_test_helper.cmx
-TESTS=test_getopt.test test_table.test test_eval.test test_stratification.test
+TESTS=test_getopt.test test_table.test test_eval.test test_stratification.test \
+	test_strlib.test
 
 .PHONY: all clean depend test prepare-test
 

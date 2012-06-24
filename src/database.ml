@@ -81,3 +81,6 @@ let equal db1 db2 =
 	 Combined_table.show_tabular (get_table db1 psym)
 	 = Combined_table.show_tabular (get_table db2 psym)
        in PredicateSet.for_all check_table ps1
+
+(* let add_fact db (p, atom) = *)
+(*   ... (\* fixme and write test *\) *)

@@ -22,4 +22,24 @@
 
 ***************************************************************************)
 
-open Program
+open OUnit
+open Strlib
+open Printf
+
+let check_eq s0 s1 () =
+  assert_equal s0 s1 ?msg:(Some ("Expected `"^s0^"' but got `"^s1^"'"))
+
+let all_tests = "getopt" >:::
+  [
+    "strip-whitespace-0" >:: check_eq  "foo, bar" (strip_whitespace "  foo, bar ");
+    "strip-whitespace-1" >:: check_eq  "a" (strip_whitespace "  a");
+    "strip-whitespace-2" >:: check_eq  "a" (strip_whitespace "a  ");
+    "dequote-0" >:: check_eq "" (dequote "\"\"");
+    "dequote-1" >:: check_eq "a" (dequote "\"a\"");
+    "dequote-2" >:: check_eq "\".x" (dequote "\"\\\"\\.x\"");
+    "dequote-3" >:: check_eq "foo\\bar" (dequote "\"foo\\\\bar\"");
+    "dequote-4" >:: check_eq "" (dequote "\"\\\"");
+  ]
+
+let _ = run_test_tt_main (all_tests)
+

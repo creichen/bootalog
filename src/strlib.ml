@@ -24,6 +24,28 @@
 
 let str c = Printf.sprintf "%c" c
 
+let dequote string =
+  let wrpos = ref 0 in
+  let unskip = ref false in
+  let append c = begin
+    String.set string (!wrpos) c;
+    wrpos := 1 + (!wrpos)
+  end
+  in begin
+    for rdpos = 0 to (String.length string) - 1 do
+      let c = String.get string rdpos
+      in if !unskip
+	then begin
+	  append c;
+	  unskip := false
+	end
+	else if c = '\\'
+	then unskip := true
+	else append c
+    done;
+    String.sub string 1 ((!wrpos) - 2)
+  end
+
 let is_blank c = match c with
     ' '		-> true
   | '\t'	-> true
@@ -40,6 +62,6 @@ let strip_whitespace (string) =
    then ""
    else begin
      while is_blank(string.[!r]) do r := !r -1 done;
-     String.sub string !l (!r - !l)
+     String.sub string !l (!r - !l + 1)
    end
   )

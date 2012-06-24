@@ -1,5 +1,5 @@
 OCAMLFIND=ocamlfind
-OCAMLFLAGS=-g
+OCAMLFLAGS=
 OCAMLC=${OCAMLFIND} ocamlc ${OCAMLFLAGS}
 OCAMLOPT=${OCAMLFIND} ocamlopt ${OCAMLFLAGS}
 OCAMLDEP=ocamldep
@@ -7,6 +7,7 @@ INCLUDES=                # all relevant -I options here
 PACKAGES=-package str
 OCAMLFLAGS=-g -w A $(INCLUDES) ${PACKAGES}
 OCAMLOPTFLAGS=$(INCLUDES) ${PACKAGES}
+BINARY=bootalog
 
 # prog1 should be compiled to bytecode, and is composed of three
 # units: mod1, mod2 and mod3.
@@ -28,8 +29,8 @@ DATALOG_OBJS=strlib.cmx error.cmx getopt.cmx compare.cmx \
 	eval.cmx \
 	repl.cmx
 
-datalog: $(DATALOG_OBJS)
-	$(OCAMLOPT) -o  $(OCAMLFLAGS) $(DATALOG_OBJS) -linkpkg
+bootalog: $(DATALOG_OBJS)
+	$(OCAMLOPT) -o ${BINARY} $(OCAMLFLAGS) $(DATALOG_OBJS) -linkpkg
 
 # Common rules
 .SUFFIXES: .ml .mli .cmo .cmi .cmx
@@ -45,7 +46,7 @@ datalog: $(DATALOG_OBJS)
 
 # Clean up
 clean:
-	rm -f datalog
+	rm -f ${BINARY}
 	rm -f *.cm[iox]
 	rm -f *.o
 

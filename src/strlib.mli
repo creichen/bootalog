@@ -35,3 +35,4 @@
 val str : char -> string
 val is_blank : char -> bool
 val strip_whitespace : string -> string
+val dequote : string -> string    (* expects enclosing double quotes *)

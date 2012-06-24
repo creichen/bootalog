@@ -22,4 +22,23 @@
 
 ***************************************************************************)
 
-open Program
+open Base
+
+type lexeme =
+    LAtom of string
+  | LName of string
+  | LWildcard
+  | LComma
+  | LQuestionmark
+  | LPeriod
+  | LWildcard
+  | LCdash
+  | LPlus
+  | LMinus
+  | LOparen
+  | LCparen
+
+type declaration =
+    DRule of rule
+  | DAddFact of fact
+  | DDelFact of fact

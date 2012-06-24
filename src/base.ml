@@ -66,9 +66,11 @@ module Tuple =
       in m sizes0 sizes1
   end
 
+type base_predicate = string
+
 type predicate =
-    Predicate of string
-  | DeltaPredicate of string
+    Predicate of base_predicate
+  | DeltaPredicate of base_predicate
 
 module Predicate =
   struct
@@ -97,6 +99,16 @@ module Predicate =
 	      | (DeltaPredicate a, DeltaPredicate b))	-> String.compare a b
 
   end
+
+type fact = base_predicate * atom
+
+module Fact =
+  struct
+    type t = fact
+
+    let show (bp, tuple) = bp ^ (Tuple.show (tuple))
+  end
+
 
 type variable = Variable.t
 
