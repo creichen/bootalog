@@ -24,7 +24,6 @@
 
 open Base
 
-
 module Lexeme =
   struct
     type lexeme =
@@ -40,7 +39,7 @@ module Lexeme =
       | LOparen
       | LCparen
       | LEOF
-      | LErrortoken of int
+      | LErrortoken of int * char
 
     let show l =
       match l with
@@ -63,3 +62,4 @@ type declaration =
     DRule of rule
   | DAddFact of fact
   | DDelFact of fact
+

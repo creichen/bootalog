@@ -31,6 +31,7 @@ let contains table tuple = Hashtbl.mem table tuple
 
 let insert table tuple = Hashtbl.add table tuple ()
 let insert' table tuple = insert table (Array.of_list tuple)
+let remove table tuple = Hashtbl.remove table tuple
 
 let show table =
   let extract tuple _ body = (Tuple.show tuple) :: body

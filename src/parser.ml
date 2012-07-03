@@ -42,8 +42,8 @@ let generic_parse lexbuf =
     let off = Lexing.lexeme_start lexbuf in
     let (line_nr, v) = Lexer.lex lexbuf
     in match v with
-	LErrortoken _	-> error "Foreign character"
-      | _		->
+	LErrortoken (_, c)	-> error (Printf.sprintf "Foreign character `%c'" c)
+      | _			->
 	begin
 	  line := line_nr;
 	  offset := off;
@@ -208,15 +208,28 @@ let generic_parse lexbuf =
       | LCdash	-> begin
 	expect LCdash;
 	let body =  parse_literals (LPeriod)
-	in Rule.normalise (head, body)
+	in begin
+	  expect LPeriod;
+	  Rule.normalise (head, body)
+	end
       end
       | other -> error_unexpected other "rule"
 
   and parse_interaction () =
-      match peek () with
-	  LPlus		-> begin expect LPlus; DAddFact (parse_fact ()) end
-	| LMinus	-> begin expect LMinus; DDelFact (parse_fact ()) end
-	| _		-> DRule (parse_rule ())
+    let dparse char action =
+      begin
+	expect char;
+	let result = action (parse_fact ());
+	in begin
+	  expect LPeriod;
+	  result
+	end
+      end
+    in
+    match peek () with
+      LPlus		-> dparse LPlus (function a -> DAddFact a)
+    | LMinus	-> dparse LMinus (function a -> DDelFact a)
+    | _		-> DRule (parse_rule ())
 
   in (parse_program, parse_interactive, parse_database)
 

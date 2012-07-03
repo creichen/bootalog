@@ -55,6 +55,6 @@ rule lex =
       | [ ' ' '\t' '\r' ]+				{ lex lexbuf }
       | "\n"						{ begin	line_nr := 1 + !line_nr; line_offset := Lexing.lexeme_start lexbuf; lex lexbuf end }
       | eof						{ ret (LEOF) }
-      | _						{ ret (LErrortoken ((Lexing.lexeme_start lexbuf) - (!line_offset))) }
+      | _ as s						{ ret (LErrortoken ((Lexing.lexeme_start lexbuf) - (!line_offset), s)) }
 
 {}

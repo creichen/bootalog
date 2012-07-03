@@ -22,5 +22,27 @@
 
 ***************************************************************************)
 
+open Base
 open Program
-open Lexer
+module DB = Database
+
+module DBFrontend =
+struct
+  let create () =
+    DB.create (Combined_table.create)
+
+  (* EDB insertion *)
+  let add db ((predicate, tuple) : fact) =
+    let insert pred tuple = Combined_table.insert (DB.get_table db pred) tuple
+    in begin
+      insert (Predicate predicate) tuple;
+      Array.iter (function v -> insert Predicate.atom [|v|]) tuple
+    end
+
+  (* EDB removal *)
+  let remove db ((predicate, tuple) : fact) =
+    Combined_table.remove (DB.get_table db (Predicate predicate)) tuple
+
+  let import db (facts : fact list) =
+    List.iter (add db) facts
+end
