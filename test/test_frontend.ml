@@ -55,6 +55,9 @@ let check_eq msg expected actual =
 let p(x, y) =
   (Predicate "p", [|x; y|])
 
+let query(x, y) =
+  (Predicate.query, [|x; y|])
+
 let q(x) =
   (Predicate "q", [|x|])
 
@@ -89,6 +92,7 @@ let all_tests = "frontend" >:::
     "parse-i-2" >:: check_parse_i [Program.DRule (p("X", "Y"), [q("X"); q("Y")])] "p(X,Y) :- q(X), q(Y).";
     "parse-i-3" >:: check_parse_i [Program.DRule (p("X", "Y"), [q2("X", "Y"); q2("Y", "X")])] "p(X,Y) :- q(X, Y), q( Y, X  ).";
     "parse-i-4" >:: check_parse_i [Program.DAddFact ("q", [|"1"|]); Program.DDelFact ("q", [|"2"|])] "+q(1). -q(2).";
+    "parse-i-5" >:: check_parse_i [Program.DQuery (query("X", "Y"), [q2("X", "Y"); q2("Y", "X")])] "?(X,Y) :- q(X, Y), q( Y, X  ).";
     "parse-db-0" >:: check_parse_d [("q", [|"1"|]); ("q", [|"2"|])] "q(1) q(2)";
   ]
 

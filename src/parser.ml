@@ -184,13 +184,15 @@ let generic_parse lexbuf =
     let pred = expect_name ()
     in (pred, parse_tuple ())
 
-  and parse_base_literal () : literal =
-    let pred = expect_name ()
-    in begin
+  and parse_base_literal_tail (pred) =
+    begin
       expect LOparen;
       let body = parse_list LComma (accept_name) "name" (function () -> accept LCparen)
-      in (Predicate pred, Array.of_list body)
+      in (pred, Array.of_list body)
     end
+
+  and parse_base_literal () : literal =
+    parse_base_literal_tail (Predicate (expect_name ()))
 
   and parse_literal () : literal =
     parse_base_literal ()
@@ -198,21 +200,30 @@ let generic_parse lexbuf =
   and parse_literals (terminator) : literal list =
     parse_list LComma (always parse_literal) "literal" (function () -> accept terminator)
 
-  and parse_rule () : rule =
-    let head = parse_base_literal ()
-    in match peek () with
-	LPeriod	-> begin
-	  expect (LPeriod);
-	  Rule.normalise (head, [])
-	end
-      | LCdash	-> begin
-	expect LCdash;
-	let body =  parse_literals (LPeriod)
-	in begin
-	  Rule.normalise (head, body)
-	end
+  and parse_rule_tail (head) : rule = 
+    match peek () with
+      LPeriod	-> begin
+	expect (LPeriod);
+	Rule.normalise (head, [])
       end
-      | other -> error_unexpected other "rule"
+    | LCdash	-> begin
+      expect LCdash;
+      let body =  parse_literals (LPeriod)
+      in begin
+	Rule.normalise (head, body)
+      end
+    end
+    | other -> error_unexpected other "rule"
+
+  and parse_rule () : rule =
+    parse_rule_tail(parse_base_literal ())
+
+  and parse_interactive_query () : rule =
+    begin
+      expect LQuestionmark;
+      let head = parse_base_literal_tail (Predicate.query)
+      in parse_rule_tail (head)
+    end
 
   and parse_interaction () =
     let dparse char action =
@@ -227,8 +238,9 @@ let generic_parse lexbuf =
     in
     match peek () with
       LPlus		-> dparse LPlus (function a -> DAddFact a)
-    | LMinus	-> dparse LMinus (function a -> DDelFact a)
-    | _		-> DRule (parse_rule ())
+    | LMinus		-> dparse LMinus (function a -> DDelFact a)
+    | LQuestionmark	-> DQuery (parse_interactive_query ())
+    | _			-> DRule (parse_rule ())
 
   in (parse_program, parse_interactive, parse_database)
 

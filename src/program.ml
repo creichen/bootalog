@@ -58,8 +58,9 @@ module Lexeme =
 	| LErrortoken _	-> "*error*"
   end
 
-type declaration =
+type interactive_input =
     DRule of rule
   | DAddFact of fact
   | DDelFact of fact
+  | DQuery of rule  (* uses Predicate.query *)
 

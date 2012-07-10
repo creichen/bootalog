@@ -77,6 +77,7 @@ module Predicate =
     type t = predicate
 
     let atom = Predicate "atom"
+    let query = Predicate "?"
 
     let is_delta s =
       match s with

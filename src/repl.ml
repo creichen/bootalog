@@ -28,7 +28,7 @@ open Getopt
 open Printf
 module DB = Database
 
-let version = "0.0.3"
+let version = "0.0.4"
 
 let boilerplate = "bootalog v" ^ version ^ "\nCopyright (C) 2012 Christoph Reichenbach\n"
   ^ "This program is Free Software under the terms of the GNU General Public Licence, v2.0 (or later)\n"
@@ -117,6 +117,14 @@ let cmd_eval_and_dump _ =
 let cmd_version _ =
   print_string boilerplate
 
+let run_query (rule) =
+  let strata = Stratification.stratify (rule :: !ruleset)
+  in begin
+    Eval.eval db strata;
+    dump_table (Predicate.query) (DB.get_table db Predicate.query);
+    DB.remove_table db (Predicate.query)
+  end
+
 let cmd_help _ =
   let p s = begin print_string s; print_string "\n" end in
   let stringify_args (arglist) =
@@ -153,6 +161,8 @@ let cmd_help _ =
     p "  > +stringify-number(1, \"one\").		              (* Facts can be tuples. *)";
     p "Remove facts:";
     p "  > -stringify-number(1, \"one\").                              (* You can remove undesired facts again. *)";
+    p "Check facts:";
+    p "  > ?(X) :- name(X).                                          (* List all matching facts. *)";
     p "";
     p "Add rules:";
     p "  > ancestor(X, Y) :- parent(X, Y).                           (* all parents Y of X are also X' ancestors. *)";
@@ -190,6 +200,7 @@ let process_interactive (declaration) =
       Program.DRule rule	-> ruleset := rule :: !ruleset
     | Program.DAddFact fact	-> Frontend.DBFrontend.add db fact
     | Program.DDelFact fact	-> Frontend.DBFrontend.remove db fact
+    | Program.DQuery rule	-> run_query (rule)
 
 let repl () =
   let iter () =
