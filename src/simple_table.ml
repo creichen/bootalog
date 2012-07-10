@@ -29,7 +29,7 @@ let create () = Hashtbl.create (17)
 
 let contains table tuple = Hashtbl.mem table tuple
 
-let insert table tuple = Hashtbl.add table tuple ()
+let insert table tuple = Hashtbl.replace table tuple ()
 let insert' table tuple = insert table (Array.of_list tuple)
 let remove table tuple = Hashtbl.remove table tuple
 

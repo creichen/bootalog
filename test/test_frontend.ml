@@ -32,7 +32,7 @@ let lex s =
   let rec lx () =
     match Lexer.lex buf with
 	(_, LEOF)		-> []
-      | (l, LErrortoken d)	-> raise (Failure (Printf.sprintf "failed to parse `%s': L%d:%d (%c)" (String.escaped s) l d (String.get s d)))
+      | (l, LErrortoken (d, c))	-> raise (Failure (Printf.sprintf "failed to parse `%s': L%d:%d (%c)" (String.escaped s) l d c))
       | (_, other)		-> other :: (lx())
   in lx()
 
@@ -58,6 +58,9 @@ let p(x, y) =
 let q(x) =
   (Predicate "q", [|x|])
 
+let q2(x, y) =
+  (Predicate "q", [|x; y|])
+
 let atom(x) =
   (Predicate "atom", [|x|])
 
@@ -81,10 +84,11 @@ let all_tests = "frontend" >:::
     "parse-p-2" >:: check_parse_p [(p("X", "Y"), [q("X"); q("Y")])] "p(X,Y) :- q(X), q(Y).";
     "parse-p-3" >:: check_parse_p [(q("X"), [q("X")]); (r(), [])] "q(X) :- q(X). r().";
     "parse-p-4" >:: check_parse_p [(q("X"), [q("X")])] "q(X) :- q(X).";
-    "parse-i-0" >:: check_parse_i [Program.DAddFact ("q", [|"1"|])] "+q(1)";
-    "parse-i-1" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1)";
+    "parse-i-0" >:: check_parse_i [Program.DAddFact ("q", [|"1"|])] "+q(1).";
+    "parse-i-1" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1).";
     "parse-i-2" >:: check_parse_i [Program.DRule (p("X", "Y"), [q("X"); q("Y")])] "p(X,Y) :- q(X), q(Y).";
-    "parse-i-3" >:: check_parse_i [Program.DAddFact ("q", [|"1"|]); Program.DDelFact ("q", [|"2"|])] "+q(1) -q(2)";
+    "parse-i-3" >:: check_parse_i [Program.DRule (p("X", "Y"), [q2("X", "Y"); q2("Y", "X")])] "p(X,Y) :- q(X, Y), q( Y, X  ).";
+    "parse-i-4" >:: check_parse_i [Program.DAddFact ("q", [|"1"|]); Program.DDelFact ("q", [|"2"|])] "+q(1). -q(2).";
     "parse-db-0" >:: check_parse_d [("q", [|"1"|]); ("q", [|"2"|])] "q(1) q(2)";
   ]
 

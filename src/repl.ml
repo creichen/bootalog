@@ -26,8 +26,9 @@ open Base
 open Eval
 open Getopt
 open Printf
+module DB = Database
 
-let version = "0.0.2"
+let version = "0.0.3"
 
 let boilerplate = "bootalog v" ^ version ^ "\nCopyright (C) 2012 Christoph Reichenbach\n"
   ^ "This program is Free Software under the terms of the GNU General Public Licence, v2.0 (or later)\n"
@@ -39,7 +40,7 @@ type actions =
 
 let options = [
   (Some 'v', "version", NoArg (fun _ -> VERSION), "Print version information");
-  (Some 'h', "help", NoArg (fun _ -> HELP), "Print this help message")
+  (Some 'h', "help", NoArg (fun _ -> HELP), "Print this help message");
 ]
 
 let print_help () =
@@ -68,11 +69,50 @@ let read_line () =
 
 let commands_ref = ref []
 
+let dump_table name table =
+  begin
+    printf "%s:\n" (Predicate.show name);
+    print_string (Combined_table.show_tabular table);
+    print_string "\n"
+  end
+
 let cmd_quit _ =
   running := false
 
+let cmd_table tablenames =
+  let dump tablename =
+    let name = Predicate tablename
+    in if DB.has_table db name
+      then let table = DB.get_table db name
+	   in dump_table name table
+      else printf "(Table `%s' not found)\n\n" tablename
+  in List.iter dump tablenames
+
+let cmd_rules _ =
+  let count = ref 0 in
+  let pr_rule rule =
+    begin
+      Printf.printf " (* %-4d *)\t%s\n" (!count) (Rule.show rule);
+      count := !count + 1
+    end
+  in List.iter pr_rule (List.rev !ruleset)
+
+let cmd_eval _ =
+  let strata = Stratification.stratify (!ruleset)
+  in Eval.eval db strata
+
+let cmd_eval_and_dump _ =
+  begin
+    cmd_eval ();
+    DB.iter db dump_table
+  end
+
 let commands = [
-  "quit", cmd_quit, "Terminates the interactive session"
+  "quit", cmd_quit, "Terminates the interactive session";
+  "?", cmd_eval_and_dump, "Evaluates everything and dumps all tables";
+  "eval", cmd_eval, "Evaluates everything";
+  "table", cmd_table, "List contents of specified table";
+  "rules", cmd_rules, "List all current rules"
 ]
 
 let _ = commands_ref := commands
@@ -106,8 +146,17 @@ let repl () =
     with Parser.ParseError (line, offset, message) ->
       begin
 	if line = 1
-	then Printf.printf " %*c^\n" offset ' ';
-	Printf.printf "L%d %d: parse error: %s\n" line offset message
+	then
+	  let rec pad n =
+	    if n > 0
+	    then begin
+	      print_string " ";
+	      pad (n-1)
+	    end in begin
+	      pad (offset + 2);
+	      print_string "^"
+	    end;
+	  Printf.printf "L%d %d: parse error: %s\n" line offset message
       end
   in while (!running) do
       iter ()
@@ -125,3 +174,4 @@ let _ =
     end
   with Arg_fail -> (prerr_string (sprintf "\nTry %s --help for usage help\n" Sys.executable_name);
 		    exit 1)
+  | End_of_file -> exit 0

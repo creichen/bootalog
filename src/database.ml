@@ -51,6 +51,9 @@ let replace_table t predicate table =
 let remove_table t predicate =
   Hashtbl.remove t.table predicate
 
+let iter t proc =
+  Hashtbl.iter proc t.table
+
 let has_table t predicate =
   try begin ignore (Hashtbl.find t.table predicate);
     true

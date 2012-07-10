@@ -107,7 +107,7 @@ let generic_parse lexbuf =
 
   let expect (entity) =
     if not (accept (entity))
-    then error (Printf.sprintf "Expected `%s'" (Program.Lexeme.show entity))
+    then error (Printf.sprintf "Expected `%s' but found `%s'" (Program.Lexeme.show entity) (Program.Lexeme.show (peek ())))
   in
 
   let expect_atom () =
@@ -133,7 +133,7 @@ let generic_parse lexbuf =
       if empty_allowed && accept_final ()
       then []
       else match accept_element () with
-	  None		-> if empty_allowed then  [] else error (Printf.sprintf "Expected %s in list of %s" element_descr element_descr)
+	  None		-> if empty_allowed then  [] else error (Printf.sprintf "Expected %s in list of %ss" element_descr element_descr)
 	| Some e	-> e :: (parse_expecting_separator ())
     in parse_not_expecting_separator (true)
 
@@ -209,7 +209,6 @@ let generic_parse lexbuf =
 	expect LCdash;
 	let body =  parse_literals (LPeriod)
 	in begin
-	  expect LPeriod;
 	  Rule.normalise (head, body)
 	end
       end
