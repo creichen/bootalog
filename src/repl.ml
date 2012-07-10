@@ -60,6 +60,13 @@ let db = Frontend.DBFrontend.create ()
 let ruleset = ref []
 let running = ref true
 
+let rec pad n =
+  if n > 0
+  then begin
+    print_string " ";
+    pad (n-1)
+  end
+
 let read_line () =
   begin
     Printf.printf "> ";
@@ -79,7 +86,7 @@ let dump_table name table =
 let cmd_quit _ =
   running := false
 
-let cmd_table tablenames =
+let cmd_dump tablenames =
   let dump tablename =
     let name = Predicate tablename
     in if DB.has_table db name
@@ -107,12 +114,62 @@ let cmd_eval_and_dump _ =
     DB.iter db dump_table
   end
 
+let cmd_version _ =
+  print_string boilerplate
+
+let cmd_help _ =
+  let p s = begin print_string s; print_string "\n" end in
+  let stringify_args (arglist) =
+    String.concat " " arglist
+  in
+  let max_arglen = ref 0 in
+  let max_cmdlen = ref 0 in
+  let update_arg_stats (name, _, args, _) =
+    begin
+      max_cmdlen := max (!max_cmdlen) (String.length (name));
+      max_arglen := max (!max_arglen) (String.length (stringify_args args))
+    end in
+  let pr_command (name, _, args, descr) =
+    let print_padded n s =
+      begin
+	print_string s;
+	pad (n - (String.length s))
+      end
+    in begin
+      print_string "  > \\";
+      print_padded (!max_cmdlen + 1) name;
+      print_padded (!max_arglen + 1) (stringify_args args);
+      Printf.printf "    (* %s *)\n" descr;
+    end
+  in
+  let cmp_command (name, _, _, _) (name2, _, _, _) = name < name2 in
+  let commands = Sort.list (cmp_command) (!commands_ref)
+  in begin
+    List.iter update_arg_stats (commands);
+    p "Bootalog usage:";
+    p "Add facts:";
+    p "  > +name(\"bootalog\").                                        (* Add a single fact to the relation `name' *)";
+    p "  > +tasty-food(\"chocolate\"). +tasty-food(\"ice cream\").       (* Add multiple facts *)";
+    p "  > +stringify-number(1, \"one\").		              (* Facts can be tuples. *)";
+    p "Remove facts:";
+    p "  > -stringify-number(1, \"one\").                              (* You can remove undesired facts again. *)";
+    p "";
+    p "Add rules:";
+    p "  > ancestor(X, Y) :- parent(X, Y).                           (* all parents Y of X are also X' ancestors. *)";
+    p "  > ancestor(X, Y) :- ancestor(X, Z), ancestor(Z, Y).         (* any ancestor's ancestor Y is also X' ancestor. *)";
+    p "";
+    p "Commands:";
+    List.iter pr_command (commands)
+  end
+
 let commands = [
-  "quit", cmd_quit, "Terminates the interactive session";
-  "?", cmd_eval_and_dump, "Evaluates everything and dumps all tables";
-  "eval", cmd_eval, "Evaluates everything";
-  "table", cmd_table, "List contents of specified table";
-  "rules", cmd_rules, "List all current rules"
+  "quit", cmd_quit, [], "Terminates the interactive session";
+  "?", cmd_eval_and_dump, [], "Evaluates everything and dumps all tables";
+  "eval", cmd_eval, [], "Evaluates everything";
+  "dump", cmd_dump, ["table"], "Dump contents of specified table";
+  "rules", cmd_rules, [], "List all current rules";
+  "help", cmd_help, [], "Print command help";
+  "version", cmd_version, [], "Print version and licencing information"
 ]
 
 let _ = commands_ref := commands
@@ -125,7 +182,7 @@ let process_command (string) =
 	 let rec do_try command_list =
 	   match command_list with
 	       []			-> Printf.printf "Unknown command `%s'. Try \\help.\n" cmd_name
-	     | (name, cmd, _)::tl	-> if name = cmd_name then cmd (args) else do_try tl
+	     | (name, cmd, _, _)::tl	-> if name = cmd_name then cmd (args) else do_try tl
 	 in do_try (!commands_ref)
 
 let process_interactive (declaration) =
@@ -146,13 +203,7 @@ let repl () =
     with Parser.ParseError (line, offset, message) ->
       begin
 	if line = 1
-	then
-	  let rec pad n =
-	    if n > 0
-	    then begin
-	      print_string " ";
-	      pad (n-1)
-	    end in begin
+	then begin
 	      pad (offset + 2);
 	      print_string "^"
 	    end;
@@ -164,7 +215,7 @@ let repl () =
 
 let _ =
   try
-    let action, args = process_commandline Error.report options INTERACTIVE
+    let action, _args = process_commandline Error.report options INTERACTIVE
     in match action with
       HELP		-> print_help ()
     | VERSION		-> print_version ()

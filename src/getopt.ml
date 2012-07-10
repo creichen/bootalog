@@ -22,13 +22,13 @@
 
 ***************************************************************************)
 
-open Printf;;
+open Printf
 
 type 'a opt_proc = NoArg	of ('a -> 'a)
-	         | WithArg	of string * ('a * string -> 'a);;
+	         | WithArg	of string * ('a * string -> 'a)
 
 (** The final string here is a brief description of the parameter *)
-type 'a opt = char option * string * 'a opt_proc * string;;
+type 'a opt = char option * string * 'a opt_proc * string
 
 
 (* Note to self: this might have been easier with the `Format' module *)
@@ -68,10 +68,10 @@ let print_help (print) (optlist : 'a opt list) =
 	       print "\n";
 	     end
 	   in let compare_oli (_, a, _, _) (_, b, _, _) = a < b
-	   in List.iter print_opt (Sort.list compare_oli optlist);;
+	   in List.iter print_opt (Sort.list compare_oli optlist)
 
-exception Fail;;
-exception Arg_fail;;
+exception Fail
+exception Arg_fail
 
 let process_args error_handler (optlist : 'a opt list) default_value argv =
   try
@@ -117,7 +117,7 @@ let process_args error_handler (optlist : 'a opt list) default_value argv =
 
 		  let handle_option (proc, arg, optname, get_arg) =
 		    match proc, arg with
-			NoArg f, Some a	-> fail (sprintf "Unexpected argument `%s' to option `%s'" a optname)
+			NoArg _, Some a	-> fail (sprintf "Unexpected argument `%s' to option `%s'" a optname)
 		      | NoArg f, None		-> result := f (!result)
 		      | WithArg (_, f),Some a	-> result := f (!result, a)
 		      | WithArg (_, f), None	-> result := f (!result, get_arg (optname))
@@ -157,7 +157,7 @@ let process_args error_handler (optlist : 'a opt list) default_value argv =
     done;
       (!result, List.rev !ignored_args)
     )
-  with Fail -> (raise Arg_fail);;
+  with Fail -> (raise Arg_fail)
 
 let process_commandline error_handler optlist default_value =
-  process_args error_handler optlist default_value Sys.argv;;
+  process_args error_handler optlist default_value Sys.argv

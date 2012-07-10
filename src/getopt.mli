@@ -26,20 +26,20 @@
 
 (** Individual argument processors *)
 type 'a opt_proc = NoArg	of ('a -> 'a) (** option expects no argument *)
-	         | WithArg	of string * ('a * string -> 'a);; (** option expects argument *)
+	         | WithArg	of string * ('a * string -> 'a) (** option expects argument *)
 
 (** Individual argument spec.  The final string here is a brief description of the parameter. *)
-type 'a opt = char option * string * 'a opt_proc * string;;
+type 'a opt = char option * string * 'a opt_proc * string
 
-val print_help : (string -> unit) -> 'a opt list -> unit ;;
+val print_help : (string -> unit) -> 'a opt list -> unit
 
-exception Arg_fail;;
+exception Arg_fail
 
 (** Process all command line arguments according to an argument spec.
     Parameters are the error handler, argument spec, and default return value. *)
-val process_commandline : (string -> unit) -> 'a opt list -> 'a -> 'a * string list;;
+val process_commandline : (string -> unit) -> 'a opt list -> 'a -> 'a * string list
 
 
 (** As process_commandline, but processes a string array with arguments (arguments starting at 1). *)
-val process_args : (string -> unit) -> 'a opt list -> 'a -> string array -> 'a * string list;;
+val process_args : (string -> unit) -> 'a opt list -> 'a -> string array -> 'a * string list
 

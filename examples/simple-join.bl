@@ -1,0 +1,14 @@
++n(1, "one").
++n(2, "two").
++n(3, "three").
++n(4, "four").
+
++even(2).
++even(4).
++even(6).
++even(8).
+
+result(S) :- n(N, S), even(N).
+
+\eval
+\dump result
