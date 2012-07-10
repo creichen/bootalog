@@ -93,6 +93,8 @@ let all_tests = "frontend" >:::
     "parse-i-3" >:: check_parse_i [Program.DRule (p("X", "Y"), [q2("X", "Y"); q2("Y", "X")])] "p(X,Y) :- q(X, Y), q( Y, X  ).";
     "parse-i-4" >:: check_parse_i [Program.DAddFact ("q", [|"1"|]); Program.DDelFact ("q", [|"2"|])] "+q(1). -q(2).";
     "parse-i-5" >:: check_parse_i [Program.DQuery (query("X", "Y"), [q2("X", "Y"); q2("Y", "X")])] "?(X,Y) :- q(X, Y), q( Y, X  ).";
+    "parse-comment-0" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1 (* comment in the middle *)).";
+    "parse-comment-1" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1) (* comment (* nested *) in the middle *).";
     "parse-db-0" >:: check_parse_d [("q", [|"1"|]); ("q", [|"2"|])] "q(1) q(2)";
   ]
 

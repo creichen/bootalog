@@ -10,5 +10,8 @@
 
 result(S) :- n(N, S), even(N).
 
+(* dump the output *)
+
 \eval
 \dump result
+

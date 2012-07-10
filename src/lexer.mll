@@ -45,6 +45,7 @@ rule lex =
       | ":-"						{ ret LCdash }
       | "+"						{ ret LPlus }
       | "-"						{ ret LMinus }
+      | "(*"						{ lex_comment 1 lexbuf }
       | "("						{ ret LOparen }
       | ")"						{ ret LCparen }
       | '_' ident_tail					{ ret LWildcard }
@@ -56,5 +57,10 @@ rule lex =
       | "\n"						{ begin	line_nr := 1 + !line_nr; line_offset := Lexing.lexeme_start lexbuf; lex lexbuf end }
       | eof						{ ret (LEOF) }
       | _ as s						{ ret (LErrortoken ((Lexing.lexeme_start lexbuf) - (!line_offset), s)) }
+and lex_comment depth =
+  parse "*)"		{ if depth = 1 then lex lexbuf else lex_comment (depth - 1) lexbuf }
+      | "(*"		{ lex_comment (depth + 1) lexbuf }
+      | "\n"		{ begin	line_nr := 1 + !line_nr; line_offset := Lexing.lexeme_start lexbuf; lex_comment depth lexbuf end }
+      | _		{ lex_comment depth lexbuf }
 
 {}
