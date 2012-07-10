@@ -117,13 +117,13 @@ let cmd_eval_and_dump _ =
 let cmd_version _ =
   print_string boilerplate
 
-let run_query (rule) =
-  let strata = Stratification.stratify (rule :: !ruleset)
-  in begin
-    Eval.eval db strata;
-    dump_table (Predicate.query) (DB.get_table db Predicate.query);
-    DB.remove_table db (Predicate.query)
-  end
+let cmd_drop tablenames =
+  let drop tablename =
+    let name = Predicate tablename
+    in if DB.has_table db name
+      then DB.remove_table db name
+      else printf "(Table `%s' not found)\n" tablename
+  in List.iter drop tablenames
 
 let cmd_help _ =
   let p s = begin print_string s; print_string "\n" end in
@@ -179,10 +179,20 @@ let commands = [
   "dump", cmd_dump, ["table"], "Dump contents of specified table";
   "rules", cmd_rules, [], "List all current rules";
   "help", cmd_help, [], "Print command help";
-  "version", cmd_version, [], "Print version and licencing information"
+  "version", cmd_version, [], "Print version and licencing information";
+  "drop", cmd_drop, ["table"], "Drops a table"
 ]
 
 let _ = commands_ref := commands
+
+
+let run_query (rule) =
+  let strata = Stratification.stratify (rule :: !ruleset)
+  in begin
+    Eval.eval db strata;
+    dump_table (Predicate.query) (DB.get_table db Predicate.query);
+    DB.remove_table db (Predicate.query)
+  end
 
 let process_command (string) =
   let commands = Str.split (Str.regexp " ") string
