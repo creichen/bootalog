@@ -38,9 +38,25 @@ type actions =
   | VERSION
   | INTERACTIVE
 
+let program_files = ref []
+let text_data_files = ref []
+
+let sprintf = Printf.sprintf
+
+let ierror (message) =
+  Printf.eprintf "Interactive error: %s\n" message
+
+let record_file reflist (c, filename) =
+  begin
+    reflist := filename :: !reflist;
+    c
+  end
+
 let options = [
   (Some 'v', "version", NoArg (fun _ -> VERSION), "Print version information");
   (Some 'h', "help", NoArg (fun _ -> HELP), "Print this help message");
+  (Some 'r', "rules", WithArg ("file", record_file program_files), "Load rules from program file");
+  (Some 'd', "data", WithArg ("file", record_file text_data_files), "Load data from text database file");
 ]
 
 let print_help () =
@@ -92,7 +108,7 @@ let cmd_dump tablenames =
     in if DB.has_table db name
       then let table = DB.get_table db name
 	   in dump_table name table
-      else printf "(Table `%s' not found)\n\n" tablename
+      else ierror (sprintf "Table `%s' not found" tablename)
   in List.iter dump tablenames
 
 let cmd_rules _ =
@@ -122,7 +138,7 @@ let cmd_drop tablenames =
     let name = Predicate tablename
     in if DB.has_table db name
       then DB.remove_table db name
-      else printf "(Table `%s' not found)\n" tablename
+      else ierror (sprintf "Table `%s' not found" tablename)
   in List.iter drop tablenames
 
 let cmd_help _ =
@@ -186,6 +202,25 @@ let commands = [
 let _ = commands_ref := commands
 
 
+let from_file filename parse_function =
+  try
+    Parser.from_file filename parse_function
+  with Sys_error msg -> begin
+    ierror (sprintf "Could not open `%s': %s" filename msg);
+    []
+  end
+
+(* Manifests the parsed data first.  Not suited for large fact databases. *)
+(* We'll add binary database support for that later, and anything beyond that
+   is out of scope for bootalog (and instead intended in scope for whatever
+   datalog system we use bootalog to construct). *)
+let load_text_data filename =
+  List.iter (Frontend.DBFrontend.add db) (from_file filename Parser.parse_text_database)
+
+(* Manifests the parsed rules first.  Not suited for huge programs. *)
+let load_rules filename =
+  ruleset := (from_file filename Parser.parse_program) @ !ruleset
+
 let run_query (rule) =
   let strata = Stratification.stratify (rule :: !ruleset)
   in begin
@@ -237,12 +272,16 @@ let repl () =
 let _ =
   try
     let action, _args = process_commandline Error.report options INTERACTIVE
-    in match action with
-      HELP		-> print_help ()
-    | VERSION		-> print_version ()
-    | INTERACTIVE	-> begin
-      print_string "Welcome to Bootalog!\n";
-      repl ()
+    in begin
+      List.iter load_rules !program_files;
+      List.iter load_text_data !text_data_files;
+      match action with
+	HELP		-> print_help ()
+      | VERSION		-> print_version ()
+      | INTERACTIVE	-> begin
+	print_string "Welcome to Bootalog!\n";
+	repl ()
+      end
     end
   with Arg_fail -> (prerr_string (sprintf "\nTry %s --help for usage help\n" Sys.executable_name);
 		    exit 1)

@@ -253,6 +253,15 @@ let parse_interactive lexbuf =
   let (_, inter, _) = generic_parse lexbuf
   in inter ()
 
-let parse_database lexbuf =
+let parse_text_database lexbuf =
   let (_, _, db) = generic_parse lexbuf
   in db ()
+
+(* raise Sys_error if opening failed *)
+let from_file filename parse_function =
+  let file = open_in filename in
+  let result = parse_function (Lexing.from_channel file)
+  in begin
+    close_in (file);
+    result
+  end

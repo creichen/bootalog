@@ -1,0 +1,8 @@
+parent('algol60, 'cpl)
+parent('cpl, 'bcpl)
+parent('bcpl, 'b)
+parent('b, 'c)
+parent('c, 'cplusplus)
+parent('c, 'java)
+parent('c, 'd)
+parent('java, 'scala)

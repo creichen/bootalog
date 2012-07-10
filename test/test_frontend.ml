@@ -46,7 +46,7 @@ let check_parse_i expected string () =
   assert_equal expected (Parser.parse_interactive (Lexing.from_string string))
 
 let check_parse_d expected string () =
-  assert_equal expected (Parser.parse_database (Lexing.from_string string))
+  assert_equal expected (Parser.parse_text_database (Lexing.from_string string))
 
 let check_eq msg expected actual =
   assert_equal expected actual ?msg:(Some msg)
