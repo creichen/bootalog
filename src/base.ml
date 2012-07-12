@@ -68,16 +68,19 @@ module Tuple =
 
 type base_predicate = string
 
+type primop_id = int
+
 type predicate =
-    Predicate of base_predicate
+    Predicate      of base_predicate
   | DeltaPredicate of base_predicate
+  | Primop         of string * primop_id
 
 module Predicate =
   struct
     type t = predicate
 
     let atom = Predicate "atom"
-    let query = Predicate "?"
+    let query = Predicate "?"  (* used for interactive queries *)
 
     let is_delta s =
       match s with
@@ -88,19 +91,23 @@ module Predicate =
       match p with
 	  Predicate p		-> p
 	| DeltaPredicate d	-> "D[" ^ d ^ "]"
+	| Primop (s, _)		-> s
 
     let delta s =
       match s with
 	  Predicate p		-> DeltaPredicate p
-	| DeltaPredicate d	-> raise (Failure ("Attempted deltafication of delta`"^d^"'"))
+	| DeltaPredicate d	-> raise (Failure ("Attempted deltafication of delta `"^d^"'"))
+	| Primop (s, d)		-> raise (Failure ("Attempted deltafication of primop `"^s^"'"))
 
     let compare l r =
       match (l, r) with
-	  (Predicate _, DeltaPredicate _)		-> -1
-	| (DeltaPredicate _, Predicate _)		-> 1
 	| ((Predicate a,Predicate b)
 	      | (DeltaPredicate a, DeltaPredicate b))	-> String.compare a b
-
+	| (Primop (_, a), Primop (_, b))		-> b - a
+	| (Predicate _, _)				-> -1
+	| (DeltaPredicate _, Predicate _)		-> 1
+	| (DeltaPredicate _, _)				-> -1
+	| (Primop _, _)					-> 1
   end
 
 type fact = base_predicate * (atom array)

@@ -8,14 +8,16 @@ PACKAGES=-package str -package oUnit
 OCAMLFLAGS=-g -w A-E $(INCLUDES) ${PACKAGES}
 OCAMLOPTFLAGS=$(INCLUDES) ${PACKAGES}
 CMX_DEPS=../src/strlib.cmx ../src/error.cmx ../src/getopt.cmx ../src/compare.cmx \
+	../src/dynamic_programming.cmx \
 	../src/variable.cmx ../src/base.cmx ../src/env.cmx \
+	../src/primop_interface.cmx ../src/primops.cmx ../src/access_path.cmx \
 	../src/stratification.cmx \
 	../src/simple_table.cmx ../src/combined_table.cmx ../src/database.cmx \
 	../src/program.cmx ../src/lexer.cmx ../src/frontend.cmx ../src/parser.cmx \
 	../src/eval.cmx
 CMX_HELPERS=stratum_test_helper.cmx
 TESTS=test_getopt.test test_table.test test_eval.test test_stratification.test \
-	test_strlib.test test_frontend.test
+	test_strlib.test test_frontend.test test_dynamic_programming.test
 
 .PHONY: all clean depend test prepare-test
 
