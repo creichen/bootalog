@@ -22,7 +22,7 @@
 
 ***************************************************************************)
 
-open Rules
+open Base
 open Eval
 open Getopt
 open Printf
@@ -104,7 +104,7 @@ let cmd_quit _ =
 
 let cmd_dump tablenames =
   let dump tablename =
-    let name = Predicate tablename
+    let name = Predicate.P tablename
     in if DB.has_table db name
       then let table = DB.get_table db name
 	   in dump_table name table
@@ -135,7 +135,7 @@ let cmd_version _ =
 
 let cmd_drop tablenames =
   let drop tablename =
-    let name = Predicate tablename
+    let name = Predicate.P tablename
     in if DB.has_table db name
       then DB.remove_table db name
       else ierror (sprintf "Table `%s' not found" tablename)

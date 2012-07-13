@@ -22,32 +22,15 @@
 
 ***************************************************************************)
 
-open Hashtbl
+module VarSet' = Set.Make(Variable)
+include VarSet'
 
-type t = (Variable.t, Atom.t) Hashtbl.t
+let contains set elt = mem elt set
+let add' a b = add b a
+let show set =
+  let show_one elt tail = (Variable.show elt)::tail
+  in let elts = fold show_one set [] in
+     "{" ^ (String.concat ", " elts) ^ "}"
 
-let fresh () = Hashtbl.create (7)
+let of_array (array) = Array.fold_left add' empty array
 
-let find = Hashtbl.find
-
-let lookup env variable =
-  try Some (find env variable)
-  with Not_found -> None
-
-let bind = Hashtbl.replace
-let unbind = Hashtbl.remove
-
-let clear = Hashtbl.clear
-
-let show table =
-  let s var atom tail =
-    ((Variable.show var) ^ ": " ^ (Atom.show atom)) :: tail
-  in let body = Hashtbl.fold s table []
-     in "{| " ^ (String.concat ", " body) ^ " |}"
-
-(*
-let bind env variable atom =
-  match lookup env variable with
-      None	-> (Hashtbl.add env variable atom; true)
-    | Some a	-> a == atom
-*)

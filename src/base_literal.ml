@@ -22,32 +22,15 @@
 
 ***************************************************************************)
 
-open Hashtbl
+module VarSet = Var_set
 
-type t = (Variable.t, Atom.t) Hashtbl.t
+type t = Predicate.t * (Variable.t array)
 
-let fresh () = Hashtbl.create (7)
+let delta (p, body) =
+  (Predicate.delta p, body)
 
-let find = Hashtbl.find
+let show (symbol, varlist) =
+  Predicate.show(symbol) ^ "(" ^ (String.concat ", " (List.map Variable.show (Array.to_list varlist))) ^ ")"
+let compare = Compare.join (Predicate.compare) (Compare.array_collate Variable.compare)
 
-let lookup env variable =
-  try Some (find env variable)
-  with Not_found -> None
-
-let bind = Hashtbl.replace
-let unbind = Hashtbl.remove
-
-let clear = Hashtbl.clear
-
-let show table =
-  let s var atom tail =
-    ((Variable.show var) ^ ": " ^ (Atom.show atom)) :: tail
-  in let body = Hashtbl.fold s table []
-     in "{| " ^ (String.concat ", " body) ^ " |}"
-
-(*
-let bind env variable atom =
-  match lookup env variable with
-      None	-> (Hashtbl.add env variable atom; true)
-    | Some a	-> a == atom
-*)
+let vars (_, vars) = VarSet.of_array (vars)

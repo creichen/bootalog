@@ -22,32 +22,33 @@
 
 ***************************************************************************)
 
-open Hashtbl
+module PredicateSet = Predicate_set
+module BaseRule = Base_rule
 
-type t = (Variable.t, Atom.t) Hashtbl.t
+type t =
+  { pss		: PredicateSet.t;
+    base	: Rule.t list;
+    delta	: Rule.t list }
 
-let fresh () = Hashtbl.create (7)
+    let show_n label stratum =
+      let show_rules rules =
+	String.concat "" (List.map (function rule -> "  " ^ BaseRule.show rule ^ "\n") rules)
+      in ("== " ^ label ^ "<" ^ (PredicateSet.show stratum.pss) ^ ">}\n"
+	  ^ "- base:\n"
+	  ^ (show_rules stratum.base)
+	  ^ "- delta:\n"
+	  ^ (show_rules stratum.delta))
 
-let find = Hashtbl.find
+    let show = show_n ""
 
-let lookup env variable =
-  try Some (find env variable)
-  with Not_found -> None
+    let normalise stratum =
+      { pss	= stratum.pss;
+	base	= List.sort BaseRule.compare stratum.base;
+	delta	= List.sort BaseRule.compare stratum.delta; }
 
-let bind = Hashtbl.replace
-let unbind = Hashtbl.remove
-
-let clear = Hashtbl.clear
-
-let show table =
-  let s var atom tail =
-    ((Variable.show var) ^ ": " ^ (Atom.show atom)) :: tail
-  in let body = Hashtbl.fold s table []
-     in "{| " ^ (String.concat ", " body) ^ " |}"
-
-(*
-let bind env variable atom =
-  match lookup env variable with
-      None	-> (Hashtbl.add env variable atom; true)
-    | Some a	-> a == atom
-*)
+    let equal stratum0 stratum1 =
+      let s0 = normalise stratum0 in
+      let s1 = normalise stratum1
+      in (PredicateSet.equal s0.pss s1.pss
+	  && s0.base = s1.base
+	    && s0.delta = s1.delta)

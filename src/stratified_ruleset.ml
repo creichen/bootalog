@@ -22,32 +22,23 @@
 
 ***************************************************************************)
 
-open Hashtbl
+type t = Stratum.t list
 
-type t = (Variable.t, Atom.t) Hashtbl.t
+let show strata =
+  let rec show_i i args =
+    match args with
+      []		-> ""
+    | h::tl	-> (Stratum.show_n (Printf.sprintf "%i" i) h) ^ "\n" ^ (show_i (i+1) tl)
+  in show_i 0 strata
 
-let fresh () = Hashtbl.create (7)
+let normalise =
+  List.map Stratum.normalise
 
-let find = Hashtbl.find
-
-let lookup env variable =
-  try Some (find env variable)
-  with Not_found -> None
-
-let bind = Hashtbl.replace
-let unbind = Hashtbl.remove
-
-let clear = Hashtbl.clear
-
-let show table =
-  let s var atom tail =
-    ((Variable.show var) ^ ": " ^ (Atom.show atom)) :: tail
-  in let body = Hashtbl.fold s table []
-     in "{| " ^ (String.concat ", " body) ^ " |}"
-
-(*
-let bind env variable atom =
-  match lookup env variable with
-      None	-> (Hashtbl.add env variable atom; true)
-    | Some a	-> a == atom
-*)
+let equal =
+  let rec is_eq r0 r1 =
+    match (r0, r1) with
+      ([], [])	-> true
+    | (h0::tl0,
+       h1::tl1)	-> if Stratum.equal h0 h1 then is_eq tl0 tl1 else false
+    | _		-> false
+  in is_eq

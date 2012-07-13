@@ -22,35 +22,27 @@
 
 ***************************************************************************)
 
-exception Malformed
-exception NotADeltaTable
-exception UnexpectedDeltaTable
-exception Option
-
-let value_of x =
-  match x with
-    None	-> raise Option
-  | Some x'	-> x'
-
-type atom = Atom.t
-type tuple = Tuple.t
-
 module BaseLiteral = Base_literal
-module BaseRule = Base_rule
-
-type predicate = Predicate.t
-type base_predicate = Predicate.base_t
-type fact = Fact.t
-type variable = Variable.t
-type literal = BaseLiteral.t
-type rule = BaseRule.t
-
 module VarSet = Var_set
 module PredicateSet = Predicate_set
-module RuleSet = Rule_set
-module StratifiedRuleset = Stratified_ruleset
 
-type ruleset = RuleSet.t
-type stratum = Stratum.t
+type literal = BaseLiteral.t
+
+type t = literal * literal list
+let show (head, tail) = BaseLiteral.show (head) ^ " :- " ^ (String.concat ", " (List.map BaseLiteral.show tail)) ^ "."
+let compare = Compare.join (BaseLiteral.compare) (Compare.collate (BaseLiteral.compare))
+let equal a b = 0 = compare a b
+
+let body_predicates (_, body) =  List.fold_left (fun map -> fun (p, _) -> PredicateSet.add p map) PredicateSet.empty body
+let head_vars (head, _) = BaseLiteral.vars (head)
+let body_vars (_, body) = List.fold_left (fun map -> fun (_, vars) -> Array.fold_left VarSet.add' map vars) VarSet.empty body
+
+let normalise ((head, tail) as rule : t) =
+  let head_vars = head_vars (rule) in
+  let body_vars = body_vars (rule) in
+  let free_vars = VarSet.diff head_vars body_vars in
+  let add_atom_predicate var tail = (Predicate.atom, [| var |]) :: tail in
+  let atom_tail = VarSet.fold add_atom_predicate free_vars [] in
+  (head, tail @ atom_tail)
 
 

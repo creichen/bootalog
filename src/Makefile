@@ -26,9 +26,23 @@ BINARY=bootalog
 # The list of object files for prog2
 DATALOG_OBJS=strlib.cmx error.cmx getopt.cmx compare.cmx \
 	dynamic_programming.cmx \
-	variable.cmx base.cmx env.cmx \
+	variable.cmx \
+	var_set.cmx \
+	atom.cmx \
+	tuple.cmx \
+	predicate.cmx \
+	predicate_set.cmx \
+	fact.cmx \
+	base_literal.cmx \
+	base_rule.cmx \
+	rule.cmx \
+	stratum.cmx \
+	stratified_ruleset.cmx \
+	rule_set.cmx \
+	base.cmx env.cmx \
 	primop_interface.cmx primops.cmx \
-	rules.cmx access_path.cmx stratification.cmx \
+	literal.cmx \
+	access_path.cmx stratification.cmx \
 	simple_table.cmx combined_table.cmx database.cmx \
 	eval.cmx \
 	program.cmx lexer.cmx parser.cmx frontend.cmx \

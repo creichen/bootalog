@@ -22,7 +22,7 @@
 
 ***************************************************************************)
 
-open Rules
+open Base
 open Program
 open Program.Lexeme
 
@@ -192,7 +192,7 @@ let generic_parse lexbuf =
     end
 
   and parse_base_literal () : literal =
-    parse_base_literal_tail (Predicate (expect_name ()))
+    parse_base_literal_tail (Predicate.P (expect_name ()))
 
   and parse_literal () : literal =
     parse_base_literal ()

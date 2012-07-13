@@ -23,6 +23,7 @@
 ***************************************************************************)
 
 open Base
+open Stratum
 
 type env = Env.t
 
@@ -82,7 +83,7 @@ let eval_stratum db ({ pss; base; delta } : stratum) =
   in
   let lookup_predicate ps =
     match ps with
-	DeltaPredicate s	-> Table.SimpleT (Hashtbl.find delta_lookup_tables (Predicate s))
+	Predicate.Delta s	-> Table.SimpleT (Hashtbl.find delta_lookup_tables (Predicate.P s))
       | _			-> Database.get_table db ps
   in
   let eval_rules rules =

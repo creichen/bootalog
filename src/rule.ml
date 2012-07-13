@@ -22,14 +22,4 @@
 
 ***************************************************************************)
 
-include Base
-
-module Literal =
-  struct
-    include BaseLiteral
-  end
-
-module Rule =
-  struct
-    include BaseRule
-  end
+include Base_rule

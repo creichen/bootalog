@@ -22,32 +22,26 @@
 
 ***************************************************************************)
 
-open Hashtbl
+type t = Atom.t array
+let show elts = "(" ^ (String.concat ", " (List.map Atom.show (Array.to_list elts))) ^ ")"
+let sort = List.sort (Compare.array_collate (String.compare))
 
-type t = (Variable.t, Atom.t) Hashtbl.t
+let string_sizes (tuple) =
+  List.map (function t -> (String.length (Atom.show t))) (Array.to_list tuple)
 
-let fresh () = Hashtbl.create (7)
+let show_padded sizes tuple =
+  let rec s a b =
+    match (a, b) with
+      (size::sl, atom::al)	-> (Printf.sprintf "%-*s" size (Atom.show atom)) :: (s sl al)
+    | (_, [])			-> []
+    | ([], atom::al)		-> (Atom.show atom) :: (s [] al)
+  in String.concat "" (s sizes (Array.to_list tuple))
 
-let find = Hashtbl.find
-
-let lookup env variable =
-  try Some (find env variable)
-  with Not_found -> None
-
-let bind = Hashtbl.replace
-let unbind = Hashtbl.remove
-
-let clear = Hashtbl.clear
-
-let show table =
-  let s var atom tail =
-    ((Variable.show var) ^ ": " ^ (Atom.show atom)) :: tail
-  in let body = Hashtbl.fold s table []
-     in "{| " ^ (String.concat ", " body) ^ " |}"
-
-(*
-let bind env variable atom =
-  match lookup env variable with
-      None	-> (Hashtbl.add env variable atom; true)
-    | Some a	-> a == atom
-*)
+let merge_string_sizes sizes0 sizes1 =
+  let rec m a b =
+    match (a, b) with
+      ([], tl)	-> tl
+    | (tl, [])	-> tl
+    | (h1::tl1,
+       h2::tl2)	-> (if h1 > h2 then h1 else h2)::(m tl1 tl2)
+  in m sizes0 sizes1

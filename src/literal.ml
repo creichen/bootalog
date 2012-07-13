@@ -22,32 +22,25 @@
 
 ***************************************************************************)
 
-open Hashtbl
+include Base_literal
+module PrimopInterface = Primop_interface
 
-type t = (Variable.t, Atom.t) Hashtbl.t
+let access_modes (vars_before : VarSet.t) ((_, body) : t) =
+  let access_mode (var) =
+    if VarSet.contains vars_before var
+    then PrimopInterface.Bound
+    else PrimopInterface.Free
+  in List.map access_mode (Array.to_list body)
 
-let fresh () = Hashtbl.create (7)
-
-let find = Hashtbl.find
-
-let lookup env variable =
-  try Some (find env variable)
-  with Not_found -> None
-
-let bind = Hashtbl.replace
-let unbind = Hashtbl.remove
-
-let clear = Hashtbl.clear
-
-let show table =
-  let s var atom tail =
-    ((Variable.show var) ^ ": " ^ (Atom.show atom)) :: tail
-  in let body = Hashtbl.fold s table []
-     in "{| " ^ (String.concat ", " body) ^ " |}"
 
 (*
-let bind env variable atom =
-  match lookup env variable with
-      None	-> (Hashtbl.add env variable atom; true)
-    | Some a	-> a == atom
+let variables_bound_after (vars_before : VarSet.t) ((pred, body) as literal : literal) =
+  match pred with
+    (Predicate _ | DeltaPredicate _)	-> Some (VarSet.union (vars_before, VarSet.of_array body)) (* trivially binds all *)
+  | Primop (_, primop_id)			->
+    let primop = Primops.get primop_id
+    in match PrimopInterface.get_access_mode (access_modes vars_before literal) with
+      None	-> None
+    | 
+
 *)

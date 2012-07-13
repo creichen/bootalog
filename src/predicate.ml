@@ -22,32 +22,45 @@
 
 ***************************************************************************)
 
-open Hashtbl
+type base_t = string
+type primop_id = int
 
-type t = (Variable.t, Atom.t) Hashtbl.t
+type evaluator = Variable.t array -> Env.t -> (Env.t -> unit) -> unit
 
-let fresh () = Hashtbl.create (7)
-
-let find = Hashtbl.find
-
-let lookup env variable =
-  try Some (find env variable)
-  with Not_found -> None
-
-let bind = Hashtbl.replace
-let unbind = Hashtbl.remove
-
-let clear = Hashtbl.clear
-
-let show table =
-  let s var atom tail =
-    ((Variable.show var) ^ ": " ^ (Atom.show atom)) :: tail
-  in let body = Hashtbl.fold s table []
-     in "{| " ^ (String.concat ", " body) ^ " |}"
-
+type t =
+  P		of base_t
+| Delta		of base_t
+| Primop        of string * primop_id
 (*
-let bind env variable atom =
-  match lookup env variable with
-      None	-> (Hashtbl.add env variable atom; true)
-    | Some a	-> a == atom
+| Linked	of primop_id * string * evaluator
 *)
+
+let atom = P "atom"
+let query = P "?"  (* used for interactive queries *)
+
+let is_delta s =
+  match s with
+    Delta _	-> true
+  | _		-> false
+
+let show (p) =
+  match p with
+    P p			-> p
+  | Delta d		-> "D[" ^ d ^ "]"
+  | Primop (s, _)	-> s
+
+let delta s =
+  match s with
+    P p			-> Delta p
+  | Delta d		-> raise (Failure ("Attempted deltafication of delta `"^d^"'"))
+  | Primop (s, _)	-> raise (Failure ("Attempted deltafication of primop `"^s^"'"))
+
+let compare l r =
+  match (l, r) with
+  | ((P a,P b)
+	| (Delta a, Delta b))		-> String.compare a b
+  | (Primop (_, a), Primop (_, b))	-> b - a
+  | (P _, _)				-> -1
+  | (Delta _, P _)			-> 1
+  | (Delta _, _)			-> -1
+  | (Primop _, _)			-> 1

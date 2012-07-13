@@ -53,22 +53,22 @@ let check_eq msg expected actual =
 
 
 let p(x, y) =
-  (Predicate "p", [|x; y|])
+  (Predicate.P "p", [|x; y|])
 
 let query(x, y) =
   (Predicate.query, [|x; y|])
 
 let q(x) =
-  (Predicate "q", [|x|])
+  (Predicate.P "q", [|x|])
 
 let q2(x, y) =
-  (Predicate "q", [|x; y|])
+  (Predicate.P "q", [|x; y|])
 
 let atom(x) =
-  (Predicate "atom", [|x|])
+  (Predicate.P "atom", [|x|])
 
 let r() =
-  (Predicate "r", [||])
+  (Predicate.P "r", [||])
 
 let all_tests = "frontend" >:::
   [

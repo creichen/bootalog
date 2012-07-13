@@ -22,7 +22,8 @@
 
 ***************************************************************************)
 
-open Rules
+open Base
+open Stratum
 
 module DepTable =
 struct
@@ -73,7 +74,7 @@ let compute_rule_dependencies (ruleset) =
     end
   in
   let insert_base (((predicate, _), _) as rule) =
-    let body_predicates = PredicateSet.of_body (rule)
+    let body_predicates = Rule.body_predicates (rule)
     in add new_defs new_uses predicate body_predicates
   in (* initialise new_defs and new_uses *)
   let () = List.iter insert_base ruleset
@@ -198,7 +199,7 @@ let predicate_set_from_ruleset (ruleset) =
   List.fold_left (function set -> function ((p, _), _) -> PredicateSet.add p set) PredicateSet.empty ruleset
 
 let make_stratum (ruleset) (pss) =
-  let literal_is_relevant (p, _)	= PredicateSet.contains p pss in
+  let literal_is_relevant (p, _)	= PredicateSet.contains pss p in
   let gen_stratum (snstratum) ((head, body) as rule : rule) =
     if not (literal_is_relevant (head))
     then snstratum
@@ -211,9 +212,9 @@ let make_stratum (ruleset) (pss) =
 	       else find_deltas (h::body_prefix, tl)
 	 in let delta_rules = find_deltas ([], body)
 	    in {
-	      pss	= snstratum.pss;
-	      base	= rule :: snstratum.base;
-	      delta	= delta_rules @ snstratum.delta
+	      Stratum.pss	= snstratum.pss;
+	      Stratum.base	= rule :: snstratum.base;
+	      Stratum.delta	= delta_rules @ snstratum.delta
 	    }
   in List.fold_left gen_stratum { pss = pss; base = []; delta = [] } ruleset
 
