@@ -25,10 +25,14 @@
 exception Malformed
 exception NotADeltaTable
 exception UnexpectedDeltaTable
+exception Option
 
 type atom = string
 
-let eprint x = Printf.printf "%s" x
+let value_of x =
+  match x with
+    None	-> raise Option
+  | Some x'	-> x'
 
 module Atom =
   struct
@@ -124,7 +128,7 @@ type variable = Variable.t
 
 type literal = predicate * (variable array)
 
-module Literal =
+module BaseLiteral =
   struct
     type t = literal
 
@@ -136,54 +140,50 @@ module Literal =
     let compare = Compare.join (Predicate.compare) (Compare.array_collate Variable.compare)
   end
 
-module VarSet = Set.Make(Variable)
-let var_set_add' a b = VarSet.add b a
+module VarSet' = Set.Make(Variable)
+module VarSet =
+  struct
+    include VarSet'
+
+    let add' a b = add b a
+    let show set =
+      let show_one elt tail = (Variable.show elt)::tail
+      in let elts = fold show_one set [] in
+	 "{" ^ (String.concat ", " elts) ^ "}"
+
+    let of_literal (_, vars) = Array.fold_left add' empty vars
+    let of_rule_head (head, _) = of_literal (head)
+    let of_rule_body (_, body) = List.fold_left (fun map -> fun (_, vars) -> Array.fold_left add' map vars) empty body
+  end
 
 module PredicateSet' = Set.Make(Predicate)
 module PredicateSet =
   struct
-    open PredicateSet'
-    type t = PredicateSet'.t
-    let empty = empty
-    let add = add
+    include PredicateSet'
     let add' a b = add b a
     let from_list = List.fold_left add' empty
     let to_list s = fold (function a -> function b -> a :: b) s []
-    let iter = iter
-    let fold = fold
-    let union = union
-    let inter = inter
-    let cardinal = cardinal
-    let is_empty = is_empty
-    let singleton = singleton
     let contains = mem
-    let equal = equal
-    let for_all = for_all
-    let diff = diff
     let show set =
       let show_one elt tail = (Predicate.show elt)::tail
       in let elts = fold show_one set [] in
 	 "{" ^ (String.concat ", " elts) ^ "}"
+
+    let of_body (_, body) =  List.fold_left (fun map -> fun (p, _) -> add p map) empty body
   end
-
-let varset_literal (_, vars) = Array.fold_left var_set_add' VarSet.empty vars
-let varset_rule_head (head, _) = varset_literal (head)
-let varset_rule_body (_, body) = List.fold_left (fun map -> fun (_, vars) -> Array.fold_left var_set_add' map vars) VarSet.empty body
-
-let predicate_set_body (_, body) =  List.fold_left (fun map -> fun (p, _) -> PredicateSet.add p map) PredicateSet.empty body
 
 type rule = literal * literal list
 
-module Rule =
+module BaseRule =
   struct
     type t = rule
-    let show (head, tail) = Literal.show (head) ^ " :- " ^ (String.concat ", " (List.map Literal.show tail)) ^ "."
-    let compare = Compare.join (Literal.compare) (Compare.collate (Literal.compare))
+    let show (head, tail) = BaseLiteral.show (head) ^ " :- " ^ (String.concat ", " (List.map BaseLiteral.show tail)) ^ "."
+    let compare = Compare.join (BaseLiteral.compare) (Compare.collate (BaseLiteral.compare))
     let equal a b = 0 = compare a b
 
     let normalise ((head, tail) as rule : rule) =
-      let head_vars = varset_rule_head (rule) in
-      let body_vars = varset_rule_body (rule) in
+      let head_vars = VarSet.of_rule_head (rule) in
+      let body_vars = VarSet.of_rule_body (rule) in
       let free_vars = VarSet.diff head_vars body_vars in
       let add_atom_predicate var tail = (Predicate.atom, [| var |]) :: tail in
       let atom_tail = VarSet.fold add_atom_predicate free_vars [] in
@@ -195,7 +195,7 @@ type ruleset = rule list
 module RuleSet =
   struct
     type t = ruleset
-    let show ruleset = String.concat "\n" (List.map Rule.show ruleset)
+    let show ruleset = String.concat "\n" (List.map BaseRule.show ruleset)
   end
 
 type stratum =
@@ -209,7 +209,7 @@ module Stratum =
 
     let show_n label stratum =
       let show_rules rules =
-	String.concat "" (List.map (function rule -> "  " ^ Rule.show rule ^ "\n") rules)
+	String.concat "" (List.map (function rule -> "  " ^ BaseRule.show rule ^ "\n") rules)
       in ("== " ^ label ^ "<" ^ (PredicateSet.show stratum.pss) ^ ">}\n"
 	  ^ "- base:\n"
 	  ^ (show_rules stratum.base)
@@ -220,8 +220,8 @@ module Stratum =
 
     let normalise stratum =
       { pss	= stratum.pss;
-	base	= List.sort Rule.compare stratum.base;
-	delta	= List.sort Rule.compare stratum.delta; }
+	base	= List.sort BaseRule.compare stratum.base;
+	delta	= List.sort BaseRule.compare stratum.delta; }
 
     let equal stratum0 stratum1 =
       let s0 = normalise stratum0 in

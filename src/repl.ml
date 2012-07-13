@@ -22,7 +22,7 @@
 
 ***************************************************************************)
 
-open Base
+open Rules
 open Eval
 open Getopt
 open Printf

@@ -22,7 +22,7 @@
 
 ***************************************************************************)
 
-open Base
+open Rules
 open Program
 open Program.Lexeme
 

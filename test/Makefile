@@ -10,8 +10,8 @@ OCAMLOPTFLAGS=$(INCLUDES) ${PACKAGES}
 CMX_DEPS=../src/strlib.cmx ../src/error.cmx ../src/getopt.cmx ../src/compare.cmx \
 	../src/dynamic_programming.cmx \
 	../src/variable.cmx ../src/base.cmx ../src/env.cmx \
-	../src/primop_interface.cmx ../src/primops.cmx ../src/access_path.cmx \
-	../src/stratification.cmx \
+	../src/primop_interface.cmx ../src/primops.cmx \
+	../src/rules.cmx ../src/access_path.cmx ../src/stratification.cmx \
 	../src/simple_table.cmx ../src/combined_table.cmx ../src/database.cmx \
 	../src/program.cmx ../src/lexer.cmx ../src/frontend.cmx ../src/parser.cmx \
 	../src/eval.cmx

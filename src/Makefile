@@ -27,8 +27,8 @@ BINARY=bootalog
 DATALOG_OBJS=strlib.cmx error.cmx getopt.cmx compare.cmx \
 	dynamic_programming.cmx \
 	variable.cmx base.cmx env.cmx \
-	primop_interface.cmx primops.cmx access_path.cmx \
-	stratification.cmx \
+	primop_interface.cmx primops.cmx \
+	rules.cmx access_path.cmx stratification.cmx \
 	simple_table.cmx combined_table.cmx database.cmx \
 	eval.cmx \
 	program.cmx lexer.cmx parser.cmx frontend.cmx \

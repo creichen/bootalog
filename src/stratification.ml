@@ -22,7 +22,7 @@
 
 ***************************************************************************)
 
-open Base
+open Rules
 
 module DepTable =
 struct
@@ -73,7 +73,7 @@ let compute_rule_dependencies (ruleset) =
     end
   in
   let insert_base (((predicate, _), _) as rule) =
-    let body_predicates = predicate_set_body (rule)
+    let body_predicates = PredicateSet.of_body (rule)
     in add new_defs new_uses predicate body_predicates
   in (* initialise new_defs and new_uses *)
   let () = List.iter insert_base ruleset
