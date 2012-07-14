@@ -27,8 +27,8 @@ module BaseRule = Base_rule
 
 type t =
   { pss		: PredicateSet.t;
-    base	: Rule.t list;
-    delta	: Rule.t list }
+    base	: BaseRule.t list;
+    delta	: BaseRule.t list }
 
     let show_n label stratum =
       let show_rules rules =

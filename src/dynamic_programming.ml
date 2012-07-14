@@ -62,18 +62,19 @@ module DP =
 	state	       : state }
 
     let show_dp_state (dp_state) =
-      Printf.sprintf "[%s (so far: %s); %s => %s]"
+      Printf.sprintf "[%s (so far: %s); current:[%s] to-do:%s]"
 	(show_cost dp_state.estimated_cost)
 	(show_cost dp_state.cost_so_far)
 	(String.concat ", " (List.map show_action dp_state.actions))
 	(show_state dp_state.state)
 
-  let show_buf buf = (* simplified version *)
     let show_dp_state' s =
       match s with
   	None	-> "-"
-      | Some s	-> (show_cost s.estimated_cost)
-    in Printf.sprintf "[|%s|]" (String.concat ", " (List.map show_dp_state' (Array.to_list buf)))
+      | Some s	-> (show_dp_state s)
+
+    let show_buf buf = (* simplified version *)
+      Printf.sprintf "[|%s|]" (String.concat ", " (List.map show_dp_state' (Array.to_list buf)))
 
 
     let insert_into_buffer (results_nr : int ref) (buffer : dp_state option array) (entry : dp_state) =
@@ -117,7 +118,21 @@ module DP =
 				     cost_so_far	= zero_cost;
 				     actions		= [];
 				     state		= initial_state }|] in
+      if is_success_state (initial_state)
+      then Some []
+      else
+      let iteration_nr = ref 0 in
+      let print_state (array) (entries_nr) =
+	begin
+	  Printf.eprintf "State #%d:\n" (!iteration_nr);
+	  for i = 0 to entries_nr - 1 do
+	    Printf.eprintf "  %s\n" (show_dp_state' (Array.get array i))
+	  done;
+	  Printf.eprintf "\n%!"
+	end in
+
       let rec search inputs inputs_nr =
+(*	let () = print_state inputs inputs_nr in*)
 	let results_nr = ref 0 in
 	let results = Array.make buffer_size None in
 	let try_action dp_state action =
@@ -140,6 +155,8 @@ module DP =
 	  for i = 0 to inputs_nr - 1 do
 	    try_state (Array.get inputs i)
 	  done;
+(*	  iteration_nr := 1 + !iteration_nr;
+	  let () = print_state results (!results_nr) in*)
 	  let comp_result = ref None
 	  in let check_solution dp_state' =
 	       match !comp_result with

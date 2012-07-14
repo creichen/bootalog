@@ -36,6 +36,7 @@ let lex s =
       | (_, other)		-> other :: (lx())
   in lx()
 
+
 let check_lex expected string () =
   assert_equal expected (lex string)
 

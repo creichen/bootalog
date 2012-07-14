@@ -31,9 +31,7 @@ type t =
   P		of base_t
 | Delta		of base_t
 | Primop        of string * primop_id
-(*
-| Linked	of primop_id * string * evaluator
-*)
+| Linked	of string * primop_id * evaluator
 
 let atom = P "atom"
 let query = P "?"  (* used for interactive queries *)
@@ -48,19 +46,26 @@ let show (p) =
     P p			-> p
   | Delta d		-> "D[" ^ d ^ "]"
   | Primop (s, _)	-> s
+  | Linked (s, _, _)	-> s
 
 let delta s =
   match s with
-    P p			-> Delta p
-  | Delta d		-> raise (Failure ("Attempted deltafication of delta `"^d^"'"))
-  | Primop (s, _)	-> raise (Failure ("Attempted deltafication of primop `"^s^"'"))
+    P p				-> Delta p
+  | Delta d			-> raise (Failure ("Attempted deltafication of delta `"^d^"'"))
+  | (Primop (s, _)
+	| Linked (s, _, _))	-> raise (Failure ("Attempted deltafication of primop `"^s^"'"))
 
 let compare l r =
   match (l, r) with
   | ((P a,P b)
 	| (Delta a, Delta b))		-> String.compare a b
   | (Primop (_, a), Primop (_, b))	-> b - a
+  | (Linked (_, a, _),
+     Linked (_, b, _))			-> b - a
   | (P _, _)				-> -1
   | (Delta _, P _)			-> 1
   | (Delta _, _)			-> -1
-  | (Primop _, _)			-> 1
+  | ((Primop _, P _)
+	| (Primop _, Delta _))		-> 1
+  | (Primop _, _)			-> -1
+  | (Linked _, _)			-> 1

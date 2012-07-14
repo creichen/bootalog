@@ -44,10 +44,3 @@ let show table =
     ((Variable.show var) ^ ": " ^ (Atom.show atom)) :: tail
   in let body = Hashtbl.fold s table []
      in "{| " ^ (String.concat ", " body) ^ " |}"
-
-(*
-let bind env variable atom =
-  match lookup env variable with
-      None	-> (Hashtbl.add env variable atom; true)
-    | Some a	-> a == atom
-*)

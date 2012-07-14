@@ -256,7 +256,8 @@ let repl () =
 	'\\'	-> let cmd = String.sub input 1 (String.length input - 1)
 		   in process_command (cmd)
       | _	-> List.iter (process_interactive) (Parser.parse_interactive (Lexing.from_string (input)))
-    with Parser.ParseError (line, offset, message) ->
+    with Rule.IllFormedRule rule -> (ierror ("Ill-formed rule: " ^ (Rule.show rule)))
+    | Parser.ParseError (line, offset, message) ->
       begin
 	if line = 1
 	then begin
@@ -285,4 +286,6 @@ let _ =
     end
   with Arg_fail -> (prerr_string (sprintf "\nTry %s --help for usage help\n" Sys.executable_name);
 		    exit 1)
+  | Rule.IllFormedRule rule -> (prerr_string ("Ill-formed rule: " ^ (Rule.show rule) ^ "\n");
+			exit 1)
   | End_of_file -> exit 0

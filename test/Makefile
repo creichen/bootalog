@@ -18,20 +18,22 @@ CMX_DEPS=../src/strlib.cmx ../src/error.cmx ../src/getopt.cmx ../src/compare.cmx
 	../src/fact.cmx \
 	../src/base_literal.cmx \
 	../src/base_rule.cmx \
-	../src/rule.cmx \
 	../src/stratum.cmx \
 	../src/stratified_ruleset.cmx \
 	../src/rule_set.cmx \
 	../src/base.cmx env.cmx \
 	../src/primop_interface.cmx primops.cmx \
 	../src/literal.cmx \
-	../src/access_path.cmx ../src/stratification.cmx \
+	../src/access_path.cmx \
+	../src/rule.cmx \
+	../src/stratification.cmx \
 	../src/simple_table.cmx ../src/combined_table.cmx ../src/database.cmx \
 	../src/program.cmx ../src/lexer.cmx ../src/frontend.cmx ../src/parser.cmx \
 	../src/eval.cmx
 CMX_HELPERS=stratum_test_helper.cmx
 TESTS=test_getopt.test test_table.test test_eval.test test_stratification.test \
-	test_strlib.test test_frontend.test test_dynamic_programming.test
+	test_strlib.test test_frontend.test test_dynamic_programming.test \
+	test_access_modes.test test_primops.test
 
 .PHONY: all clean depend test prepare-test
 

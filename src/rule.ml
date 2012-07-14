@@ -23,3 +23,8 @@
 ***************************************************************************)
 
 include Base_rule
+
+module AccessPath = Access_path
+
+let normalise (rule) =
+  AccessPath.select (normalise_basic (rule))

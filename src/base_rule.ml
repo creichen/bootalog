@@ -29,6 +29,9 @@ module PredicateSet = Predicate_set
 type literal = BaseLiteral.t
 
 type t = literal * literal list
+
+exception IllFormedRule of t
+
 let show (head, tail) = BaseLiteral.show (head) ^ " :- " ^ (String.concat ", " (List.map BaseLiteral.show tail)) ^ "."
 let compare = Compare.join (BaseLiteral.compare) (Compare.collate (BaseLiteral.compare))
 let equal a b = 0 = compare a b
@@ -37,7 +40,7 @@ let body_predicates (_, body) =  List.fold_left (fun map -> fun (p, _) -> Predic
 let head_vars (head, _) = BaseLiteral.vars (head)
 let body_vars (_, body) = List.fold_left (fun map -> fun (_, vars) -> Array.fold_left VarSet.add' map vars) VarSet.empty body
 
-let normalise ((head, tail) as rule : t) =
+let normalise_basic ((head, tail) as rule : t) =
   let head_vars = head_vars (rule) in
   let body_vars = body_vars (rule) in
   let free_vars = VarSet.diff head_vars body_vars in

@@ -35,14 +35,15 @@ DATALOG_OBJS=strlib.cmx error.cmx getopt.cmx compare.cmx \
 	fact.cmx \
 	base_literal.cmx \
 	base_rule.cmx \
-	rule.cmx \
 	stratum.cmx \
 	stratified_ruleset.cmx \
 	rule_set.cmx \
 	base.cmx env.cmx \
 	primop_interface.cmx primops.cmx \
 	literal.cmx \
-	access_path.cmx stratification.cmx \
+	access_path.cmx \
+	rule.cmx \
+	stratification.cmx \
 	simple_table.cmx combined_table.cmx database.cmx \
 	eval.cmx \
 	program.cmx lexer.cmx parser.cmx frontend.cmx \

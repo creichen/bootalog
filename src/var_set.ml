@@ -33,4 +33,5 @@ let show set =
      "{" ^ (String.concat ", " elts) ^ "}"
 
 let of_array (array) = Array.fold_left add' empty array
+let of_list (list) = List.fold_left add' empty list
 
