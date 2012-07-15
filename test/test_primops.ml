@@ -78,11 +78,15 @@ let test_eval' primop_name test_name vmodes input_tuple output_tuples =
 (*      Printf.eprintf "    -> env = %s; => %s\n%!" (Env.show e) (show_result (get_output(e)));*)
       outputs := (get_output (e)) :: !outputs
     end
+    in let env_before = Env.show env
     in begin
       evaluator (body) (env) (register_output);
       let actuals = show_results (List.rev !outputs) in
       let expecteds = show_results (output_tuples)
-      in assert_equal actuals expecteds ?msg:(Some (Printf.sprintf "Mismatch:\nactual  : %s\nexpected: %s" (actuals) (expecteds)))
+      in begin
+	assert_equal actuals expecteds ?msg:(Some (Printf.sprintf "Mismatch:\nactual  : %s\nexpected: %s" (actuals) (expecteds)));
+	assert_equal env_before (Env.show env) ?msg:(Some (Printf.sprintf "Environment not restored properly:\nbefore: %s\nafter : %s" (env_before) (Env.show env)));
+      end
     end
   in full_test_name >:: test
 
