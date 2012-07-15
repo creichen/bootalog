@@ -68,8 +68,14 @@ let q2(x, y) =
 let atom(x) =
   (Predicate.P "atom", [|x|])
 
+let tmpvar(x) =
+  Parser.gen_temp_var_name (x)
+
 let r() =
   (Predicate.P "r", [||])
+
+let assign(var, value) =
+  (Predicate.Assign value, [|tmpvar (var)|])
 
 let all_tests = "frontend" >:::
   [
@@ -88,6 +94,10 @@ let all_tests = "frontend" >:::
     "parse-p-2" >:: check_parse_p [(p("X", "Y"), [q("X"); q("Y")])] "p(X,Y) :- q(X), q(Y).";
     "parse-p-3" >:: check_parse_p [(q("X"), [q("X")]); (r(), [])] "q(X) :- q(X). r().";
     "parse-p-4" >:: check_parse_p [(q("X"), [q("X")])] "q(X) :- q(X).";
+    "parse-p-lit-0" >:: check_parse_p [(q("X"), [assign(0,"42"); p("X", tmpvar(0))])] "q(X) :- p(X, 42).";
+    "parse-p-lit-1" >:: check_parse_p [(q("X"), [assign(0,"23"); assign(1, "42"); p(tmpvar(0), tmpvar(1))])] "q(X) :- p(23, \"42\").";
+    "parse-p-lit-2" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"42")])] "q(42).";
+    "parse-p-lit-3" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"teatime")])] "q('teatime).";
     "parse-i-0" >:: check_parse_i [Program.DAddFact ("q", [|"1"|])] "+q(1).";
     "parse-i-1" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1).";
     "parse-i-2" >:: check_parse_i [Program.DRule (p("X", "Y"), [q("X"); q("Y")])] "p(X,Y) :- q(X), q(Y).";

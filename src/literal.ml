@@ -75,6 +75,7 @@ let base_predicate_entries = 100
 let delta_predicate_entries = 10
 let predicate_element_read_cost = 10
 let predicate_element_check_cost = 25
+let atom_bind_cost = 1
 
 let estimate_access_cost (vars_before : VarSet.t) ((predicate, _) as literal : t) : PrimopInterface.access_cost =
   let compute_cost (expected_nr_of_entries, check_cost) = (* compute cost for regular EDB or IDB predicate *)
@@ -90,6 +91,7 @@ let estimate_access_cost (vars_before : VarSet.t) ((predicate, _) as literal : t
                                     then compute_cost (atom_predicate_entries, 0)
                                     else compute_cost (base_predicate_entries, predicate_element_check_cost))
   | Predicate.Delta _		-> compute_cost (delta_predicate_entries, predicate_element_check_cost)
+  | Predicate.Assign _		-> PrimopInterface.cost atom_bind_cost
   | Predicate.Linked _		-> failwith "estimate_access_cost shouldn't be called on linked predicates"
 
 let link_and_get_access_cost (vars_before : VarSet.t) (literal : t) : ((t * PrimopInterface.access_cost) option) =

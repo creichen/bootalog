@@ -28,6 +28,10 @@ open Program.Lexeme
 
 exception ParseError of int * int * string
 
+(* Generate the ith temporary variable name for the given rule *)
+let gen_temp_var_name (i) =
+  Printf.sprintf "$%d" i
+
 let generic_parse lexbuf =
   let current_token : lexeme option ref = ref None in
   let line = ref 0 in
@@ -97,11 +101,39 @@ let generic_parse lexbuf =
     in try_next checker
   in
 
+  let temp_var_counter = ref 0 in
+  let temp_body = ref [] in
+  let get_temp_var_for_assignment (atom) =
+    let var = !temp_var_counter in
+    let var_name = gen_temp_var_name (var)
+    in begin
+      temp_body := (Predicate.Assign atom, [| var_name |]) :: !temp_body;
+      temp_var_counter := var + 1;
+      var_name
+    end in
+  
+  let get_temp_assignments () =
+    let results = List.rev (!temp_body)
+    in begin
+      temp_body := [];
+      temp_var_counter := 0;
+      results
+    end in
+
+  let accept_name_or_temp_atom () =
+    let checker other =
+      match other with
+  	LName a	-> Some a
+      | LAtom a	-> Some (get_temp_var_for_assignment (a))
+      | _	-> None
+    in try_next checker
+  in
+
   let accept_name () =
     let checker other =
       match other with
-  	  LName a	-> Some a
-  	| _		-> None
+  	LName a	-> Some a
+      | _	-> None
     in try_next checker
   in
 
@@ -119,6 +151,12 @@ let generic_parse lexbuf =
   let expect_name () =
     match accept_name () with
 	None	-> error (Printf.sprintf "Expected name (at `%s')" (Program.Lexeme.show (peek())))
+      | Some n	-> n
+  in
+
+  let expect_name_or_temp_atom () =
+    match accept_name_or_temp_atom () with
+	None	-> error (Printf.sprintf "Expected name or atom (at `%s')" (Program.Lexeme.show (peek())))
       | Some n	-> n
   in
 
@@ -187,7 +225,7 @@ let generic_parse lexbuf =
   and parse_base_literal_tail (pred) =
     begin
       expect LOparen;
-      let body = parse_list LComma (accept_name) "name" (function () -> accept LCparen)
+      let body = parse_list LComma (accept_name_or_temp_atom) "name" (function () -> accept LCparen)
       in (pred, Array.of_list body)
     end
 
@@ -204,13 +242,14 @@ let generic_parse lexbuf =
     match peek () with
       LPeriod	-> begin
 	expect (LPeriod);
-	(head, [])
+	(head, get_temp_assignments ())
       end
     | LCdash	-> begin
       expect LCdash;
-      let body =  parse_literals (LPeriod)
+      let body =  parse_literals (LPeriod) in
+      let temp_body = get_temp_assignments ()
       in begin
-	(head, body)
+	(head, temp_body @ body)
       end
     end
     | other -> error_unexpected other "rule"

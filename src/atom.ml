@@ -25,3 +25,4 @@
 type t = string
 let show (s : string) = s
 let dummy = ""
+let compare = String.compare

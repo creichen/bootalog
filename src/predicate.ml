@@ -32,6 +32,7 @@ type t =
 | Delta		of base_t
 | Primop        of string * primop_id
 | Linked	of string * primop_id * evaluator
+| Assign	of Atom.t
 
 let atom = P "atom"
 let query = P "?"  (* used for interactive queries *)
@@ -47,13 +48,12 @@ let show (p) =
   | Delta d		-> "D[" ^ d ^ "]"
   | Primop (s, _)	-> s
   | Linked (s, _, _)	-> s
+  | Assign atom		-> Atom.show (atom) ^ "="
 
 let delta s =
   match s with
     P p				-> Delta p
-  | Delta d			-> raise (Failure ("Attempted deltafication of delta `"^d^"'"))
-  | (Primop (s, _)
-	| Linked (s, _, _))	-> raise (Failure ("Attempted deltafication of primop `"^s^"'"))
+  | _				-> raise (Failure ("Attempted deltafication of predicate `"^ (show s) ^"'"))
 
 let compare l r =
   match (l, r) with
@@ -62,10 +62,12 @@ let compare l r =
   | (Primop (_, a), Primop (_, b))	-> b - a
   | (Linked (_, a, _),
      Linked (_, b, _))			-> b - a
+  | (Assign a, Assign b)		-> Atom.compare a b
   | (P _, _)				-> -1
-  | (Delta _, P _)			-> 1
+  | (_, Assign _)			-> 1
   | (Delta _, _)			-> -1
-  | ((Primop _, P _)
-	| (Primop _, Delta _))		-> 1
+  | (_, Linked _)			-> 1
   | (Primop _, _)			-> -1
-  | (Linked _, _)			-> 1
+  | (_, Primop _)			-> 1
+  | (Linked _, _)			-> -1
+  | (_, Delta _)			-> 1
