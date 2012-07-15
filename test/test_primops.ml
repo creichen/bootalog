@@ -31,12 +31,13 @@ module PI = Primop_interface
 let get_primop_evaluator primop_name vmodes =
   let pid = Primops.resolve primop_name in
   let amodes = Primops.get (pid) in
-  let amode = List.hd (PI.access_modes [PI.Bound; PI.Free] amodes)
+  let amode = List.hd (PI.access_modes vmodes amodes)
   in (primop_name ^ "[" ^ (String.concat "" (List.map PI.show_variable_mode vmodes)) ^ "]",
       amode.PI.evaluator)
 
 let test_eval' primop_name test_name vmodes input_tuple output_tuples =
   let resolved_name, evaluator = get_primop_evaluator primop_name vmodes in
+  let full_test_name = resolved_name ^ (if "" = test_name then "" else "-" ^ test_name) in
   let env = Env.fresh () in
   let output_extractor = ref [] in
   let args =
@@ -61,6 +62,10 @@ let test_eval' primop_name test_name vmodes input_tuple output_tuples =
   let show_results results = "< " ^ (String.concat " ; "  (List.map show_result results)) ^ " >" in
   let body = Array.of_list args in
   let outputs = List.rev (!output_extractor) in
+(*
+  let () = begin
+    Printf.eprintf "  %s: env = %s; args = %s\n%!" (full_test_name) (Env.show env) (show_result args)
+  end in *)
   let get_output (env') =
     let get var =
       match Env.lookup env' var with
@@ -69,15 +74,17 @@ let test_eval' primop_name test_name vmodes input_tuple output_tuples =
     in List.map (get) outputs in
   let test () =
     let outputs = ref [] in
-    let register_output (e) =
+    let register_output (e) = begin
+(*      Printf.eprintf "    -> env = %s; => %s\n%!" (Env.show e) (show_result (get_output(e)));*)
       outputs := (get_output (e)) :: !outputs
+    end
     in begin
       evaluator (body) (env) (register_output);
       let actuals = show_results (List.rev !outputs) in
       let expecteds = show_results (output_tuples)
       in assert_equal actuals expecteds ?msg:(Some (Printf.sprintf "Mismatch:\nactual  : %s\nexpected: %s" (actuals) (expecteds)))
     end
-  in (resolved_name ^ test_name) >:: test
+  in full_test_name >:: test
 
 let test_eval opname = test_eval' opname "" 
 
@@ -91,8 +98,8 @@ let all_tests = "access-modes" >:::
   [
     test_eval "=" [bb; ff] ["42"] [["42"]];
     test_eval "=" [ff; bb] ["42"] [["42"]];
-    test_eval' "=" "-match" [bb; bb] ["42"; "42"] success;
-    test_eval' "=" "-mismatch" [bb; bb] ["42"; "23"] failure;
+    test_eval' "=" "match" [bb; bb] ["42"; "42"] success;
+    test_eval' "=" "mismatch" [bb; bb] ["42"; "23"] failure;
   ]
 
 let _ = run_test_tt_main (all_tests)

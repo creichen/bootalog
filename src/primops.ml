@@ -39,7 +39,15 @@ let find = Env.find
 
 let adapter (m : adapter_interface -> unit) vars env mcont =
   let setvars = ref [] in
-  let get i = Env.find env (Array.get vars i) in
+  let get i =
+    begin
+(*
+      Printf.eprintf " Getting vars at %d\n%!" i;
+      Printf.eprintf "  -> `%s'\n%!" (Array.get vars i);
+      Printf.eprintf "     (in env=%s)\n%!" (Env.show env);
+*)
+      Env.find env (Array.get vars i)
+    end in
   let set i value =
     let var = Array.get vars i
     in begin
@@ -71,7 +79,7 @@ module Sys =
     let eq = register "=" [
       mode [bb; ff] (write_cost 1) (* *) (function { get; set; cont } -> begin set 1 (get 0); cont () end);
       mode [ff; bb] (write_cost 1) (* *) (function { get; set; cont } -> begin set 0 (get 1); cont () end);
-      mode [bb; bb] min_cost	   (* *) (function { get; set=_; cont } -> begin if get 0 == get 1 then cont () end)
+      mode [bb; bb] min_cost	   (* *) (function { get; set=_; cont } -> begin if get 0 = get 1 then cont () end)
     ]
   end
 
