@@ -246,8 +246,8 @@ module APath =
       "[" ^ (String.concat ", " (List.map Literal.show tail)) ^ "]"
 
     let test_fail tail () =
-      let ha0 = "Z0" in
-      let ha1 = "Z0" in
+      let ha0 = "X" in
+      let ha1 = "X" in
       try
 	begin
 	  let (_, result) = AP.select (q(ha0, ha1), tail)
@@ -255,21 +255,21 @@ module APath =
 	end
       with BaseRule.IllFormedRule _ -> ()
 
-    let test_one tail expected =
-      let ha0 = "Z0" in
-      let ha1 = "Z0" in
-      let (hd, result) = AP.select (q(ha0, ha1), tail)
+    let test_one normaliser tail expected =
+      let ha0 = "X" in
+      let ha1 = "X" in
+      let (hd, result) = normaliser (q(ha0, ha1), tail)
       in begin
 	(* head preserved? *)
 	check_eq (function x -> x) (Literal.show hd) (Literal.show (q(ha0, ha1)));
 	check_eq (function x -> x) (show_tail result) (show_tail expected);
       end
 
-    let test tail expected () =
+    let test' normaliser tail expected () =
       (* permute the tail *)
       let rec try_permutations current to_go =
 	match to_go with
-	  []	-> test_one current expected
+	  []	-> test_one normaliser current expected
 	| _	-> begin
 	  let rec do_try choices rest =
 	    match choices with
@@ -282,9 +282,12 @@ module APath =
 	end
       in try_permutations [] tail
 
+    let test = test' AP.select
+    let test_n = test' Rule.normalise
+
     let test_trivial = test [] []
     let test_singleton = test  [p("X")] [p("X")]
-    let test_singleton_fail = test_fail [eq("Y", "Y")] (* which is why we need to insert atom() first *)
+    let test_singleton_fail = test_fail [eq("X", "X")] (* which is why we need to insert atom() first, see test_n_singleton *)
 
     let test_reorder_two_for_check =
       test
@@ -310,6 +313,20 @@ module APath =
       test
 	[eq("X", "Y"); p("Y"); atom("X")]
 	[p("Y"); leq "fb" ("X", "Y"); atom("X")]
+
+    (* with normalisation *)
+
+    let test_n_singleton = test_n [eq("X", "X")] [atom("X"); leq "bb" ("X", "X")]
+
+    let test_n_eq_0 =
+      test_n
+	[eq("X", "Y"); atom("X")]
+	[atom("X"); leq "bf" ("X", "Y")]
+
+    let test_n_eq_1 =
+      test_n
+	[eq("X", "Y"); p("Y"); atom("X")]
+	[p("Y"); leq "fb" ("X", "Y")]
   end
 
 let all_tests = "access-modes" >:::
@@ -353,7 +370,11 @@ let all_tests = "access-modes" >:::
     "ap-reorder-atom-for-check-0" >:: APath.test_reorder_atom_for_check;
     "ap-reorder-delta-to-head-0" >:: APath.test_reorder_delta;
     "ap-reorder-to-eq-check-0" >:: APath.test_eq_0;
-    "ap-reorder-to-eq-check-0" >:: APath.test_eq_1;
+    "ap-reorder-to-eq-check-1" >:: APath.test_eq_1;
+
+    "norm-eq-check-0" >:: APath.test_n_eq_0;
+    "norm-eq-check-1" >:: APath.test_n_eq_1;
+    "norm-singleton" >:: APath.test_n_singleton;
   ]
 
 let _ = run_test_tt_main (all_tests)

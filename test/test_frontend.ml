@@ -84,7 +84,7 @@ let all_tests = "frontend" >:::
     "string1" >:: check_lex [LAtom "fo\"o"] " \"fo\\\"o\" ";
     "string2" >:: check_lex [LAtom "f\\o\"o"] " \"f\\\\o\\\"o\" ";
     "parse-p-0" >:: check_parse_p [(r(), [])] "r().";
-    "parse-p-1" >:: check_parse_p [(q("X"), [atom("X")])] "q(X) :- .";
+    "parse-p-1" >:: check_parse_p [(q("X"), [])] "q(X) :- .";
     "parse-p-2" >:: check_parse_p [(p("X", "Y"), [q("X"); q("Y")])] "p(X,Y) :- q(X), q(Y).";
     "parse-p-3" >:: check_parse_p [(q("X"), [q("X")]); (r(), [])] "q(X) :- q(X). r().";
     "parse-p-4" >:: check_parse_p [(q("X"), [q("X")])] "q(X) :- q(X).";

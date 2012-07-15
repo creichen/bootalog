@@ -204,13 +204,13 @@ let generic_parse lexbuf =
     match peek () with
       LPeriod	-> begin
 	expect (LPeriod);
-	Rule.normalise (head, [])
+	(head, [])
       end
     | LCdash	-> begin
       expect LCdash;
       let body =  parse_literals (LPeriod)
       in begin
-	Rule.normalise (head, body)
+	(head, body)
       end
     end
     | other -> error_unexpected other "rule"

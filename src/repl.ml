@@ -219,10 +219,10 @@ let load_text_data filename =
 
 (* Manifests the parsed rules first.  Not suited for huge programs. *)
 let load_rules filename =
-  ruleset := (from_file filename Parser.parse_program) @ !ruleset
+  ruleset := (List.map Rule.normalise (from_file filename Parser.parse_program)) @ !ruleset
 
 let run_query (rule) =
-  let strata = Stratification.stratify (rule :: !ruleset)
+  let strata = Stratification.stratify (Rule.normalise rule :: !ruleset)
   in begin
     Eval.eval db strata;
     dump_table (Predicate.query) (DB.get_table db Predicate.query);
@@ -242,7 +242,7 @@ let process_command (string) =
 
 let process_interactive (declaration) =
   match declaration with
-      Program.DRule rule	-> ruleset := rule :: !ruleset
+      Program.DRule rule	-> ruleset := Rule.normalise rule :: !ruleset
     | Program.DAddFact fact	-> Frontend.DBFrontend.add db fact
     | Program.DDelFact fact	-> Frontend.DBFrontend.remove db fact
     | Program.DQuery rule	-> run_query (rule)

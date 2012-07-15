@@ -40,12 +40,12 @@ let body_predicates (_, body) =  List.fold_left (fun map -> fun (p, _) -> Predic
 let head_vars (head, _) = BaseLiteral.vars (head)
 let body_vars (_, body) = List.fold_left (fun map -> fun (_, vars) -> Array.fold_left VarSet.add' map vars) VarSet.empty body
 
-let normalise_basic ((head, tail) as rule : t) =
+let add_atoms ((head, tail) as rule : t) =
   let head_vars = head_vars (rule) in
   let body_vars = body_vars (rule) in
-  let free_vars = VarSet.diff head_vars body_vars in
+  let free_vars = VarSet.union head_vars body_vars in
   let add_atom_predicate var tail = (Predicate.atom, [| var |]) :: tail in
-  let atom_tail = VarSet.fold add_atom_predicate free_vars [] in
-  (head, tail @ atom_tail)
+  let atoms = VarSet.fold add_atom_predicate free_vars [] in
+  (head, atoms @ tail)
 
 
