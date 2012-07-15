@@ -36,6 +36,7 @@ module Lexeme =
       | LCdash
       | LPlus
       | LMinus
+      | LEqual
       | LOparen
       | LCparen
       | LEOF
@@ -52,6 +53,7 @@ module Lexeme =
 	| LCdash	-> ":-"
 	| LPlus		-> "+"
 	| LMinus	-> "-"
+	| LEqual	-> "="
 	| LOparen	-> "("
 	| LCparen	-> ")"
 	| LEOF		-> "end-of-file"

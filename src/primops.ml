@@ -250,5 +250,6 @@ let primops_names = Array.of_list (List.rev !primops_names)
 let get = Array.get primops
 let get_name = Array.get primops_names
 let resolve = Hashtbl.find primops_table
+let name_is_primop = Hashtbl.mem primops_table
 
 let register () = () (* hide the primop_interface name.  FIXME: do this in mli. *)

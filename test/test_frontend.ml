@@ -41,7 +41,9 @@ let check_lex expected string () =
   assert_equal expected (lex string)
 
 let check_parse_p expected string () =
-  assert_equal expected (Parser.parse_program (Lexing.from_string string))
+  let result = (Parser.parse_program (Lexing.from_string string)) in
+  let show s = String.concat "; " (List.map Rule.show s)
+  in assert_equal expected result ?msg:(Some (Printf.sprintf "Parse mismatch:\nactual  :%s\nexpected: %s\n" (show result) (show expected)))
 
 let check_parse_i expected string () =
   assert_equal expected (Parser.parse_interactive (Lexing.from_string string))
@@ -98,6 +100,7 @@ let all_tests = "frontend" >:::
     "parse-p-lit-1" >:: check_parse_p [(q("X"), [assign(0,"23"); assign(1, "42"); p(tmpvar(0), tmpvar(1))])] "q(X) :- p(23, \"42\").";
     "parse-p-lit-2" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"42")])] "q(42).";
     "parse-p-lit-3" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"teatime")])] "q('teatime).";
+    "parse-p-builtin-0" >:: check_parse_p [(q("X"), [assign(0,"foobar"); (Primops.Sys.concat, [|"X"; "Y"; tmpvar(0)|])])] "q(X) :- sys-concat(X,Y,\"foobar\").";
     "parse-i-0" >:: check_parse_i [Program.DAddFact ("q", [|"1"|])] "+q(1).";
     "parse-i-1" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1).";
     "parse-i-2" >:: check_parse_i [Program.DRule (p("X", "Y"), [q("X"); q("Y")])] "p(X,Y) :- q(X), q(Y).";

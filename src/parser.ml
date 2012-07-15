@@ -141,25 +141,26 @@ let generic_parse lexbuf =
     if not (accept (entity))
     then error (Printf.sprintf "Expected `%s' but found `%s'" (Program.Lexeme.show entity) (Program.Lexeme.show (peek ())))
   in
-
+(*
   let expect_atom () =
     match accept_atom () with
 	None	-> error (Printf.sprintf "Expected atom (at `%s')" (Program.Lexeme.show (peek())))
       | Some a	-> a
   in
-
+*)
   let expect_name () =
     match accept_name () with
 	None	-> error (Printf.sprintf "Expected name (at `%s')" (Program.Lexeme.show (peek())))
       | Some n	-> n
   in
 
+(*
   let expect_name_or_temp_atom () =
     match accept_name_or_temp_atom () with
 	None	-> error (Printf.sprintf "Expected name or atom (at `%s')" (Program.Lexeme.show (peek())))
       | Some n	-> n
   in
-
+*)
   let parse_list separator accept_element element_descr accept_final =
     let rec parse_expecting_separator () =
       if accept_final ()
@@ -179,9 +180,15 @@ let generic_parse lexbuf =
   let always expect () =
     Some (expect ())
   in
-
+(*
   let perr s =
     Printf.eprintf "%s\n" s
+  in
+*)
+  let assert_basic_predicate_in_literal ((head_p, _) as literal) =
+    match Primop_interface.primop_id (head_p) with
+      None	-> literal
+    | Some nid	-> error ("Primitive operator `" ^ (Primops.get_name nid) ^ "' in illegal location")
   in
 
   (* Recursive descent parsers *)
@@ -206,11 +213,12 @@ let generic_parse lexbuf =
 		   in lhs :: parse_database ()
 
   (* Auxiliary parsers *)
+(*
   and parse_atom () : atom =
     if accept LMinus
     then ("-" ^ expect_atom ())
     else expect_atom ()
-
+*)
   and parse_tuple () : tuple =
     begin
       expect LOparen;
@@ -229,8 +237,14 @@ let generic_parse lexbuf =
       in (pred, Array.of_list body)
     end
 
+  and parse_predicate () : Predicate.t =
+    match peek () with
+      LEqual	-> begin ignore (accept (LEqual)); Primops.Sys.eq end
+    | LName n	-> if Primops.name_is_primop n then Predicate.Primop (n, Primops.resolve (expect_name ())) else Predicate.P (expect_name ())
+    | _		-> error "Expected predicate name"
+
   and parse_base_literal () : literal =
-    parse_base_literal_tail (Predicate.P (expect_name ()))
+    parse_base_literal_tail (parse_predicate ())
 
   and parse_literal () : literal =
     parse_base_literal ()
@@ -255,7 +269,7 @@ let generic_parse lexbuf =
     | other -> error_unexpected other "rule"
 
   and parse_rule () : rule =
-    parse_rule_tail(parse_base_literal ())
+    parse_rule_tail (assert_basic_predicate_in_literal (parse_base_literal ()))
 
   and parse_interactive_query () : rule =
     begin

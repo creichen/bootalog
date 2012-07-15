@@ -66,6 +66,7 @@ let access_modes (var_modes : variable_mode list) (access_modes : access_mode li
     match sides with
       [], []			-> true
     | Any::tl, _::tl'		-> is_match (tl, tl')
+    | _::tl, Any::tl'		-> is_match (tl, tl')
     | Bound::tl, Bound::tl'	-> is_match (tl, tl')
     | Free::tl, Free::tl'	-> is_match (tl, tl')
     | _				-> false

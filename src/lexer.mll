@@ -45,6 +45,7 @@ rule lex =
       | ":-"						{ ret LCdash }
       | "+"						{ ret LPlus }
       | "-"						{ ret LMinus }
+      | "="						{ ret LEqual }
       | "(*"						{ lex_comment 1 lexbuf }
       | "("						{ ret LOparen }
       | ")"						{ ret LCparen }

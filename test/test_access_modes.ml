@@ -184,7 +184,7 @@ module Link =
     let eval_dummy_fn = AccessMode.dummy_fn
 
     let eq = Primops.Sys.eq
-    let leq = Predicate.Linked ("=[??]", value_of (PI.primop_id Primops.Sys.eq), dummy_fn)
+    let leq = Predicate.Linked ("=[??]", value_of (PI.primop_id eq), dummy_fn)
 
     open Primops
 
@@ -239,8 +239,17 @@ module APath =
     let r (x, y) = (Predicate.P "r", [|x; y|])
     let delta_r (x, y) = (Predicate.Delta "r", [|x; y|])
     let eq (x, y) = (Primops.Sys.eq, [|x; y|])
+    let add (x, y, z) = (Primops.Sys.add, [|x; y; z|])
+    let concat (x, y, z) = (Primops.Sys.concat, [|x; y; z|])
     let leq modestr (x, y) = (Predicate.Linked ("=["^modestr^"]", value_of (PI.primop_id Primops.Sys.eq), function _ -> function _ -> function _ -> ()),
 			      [|x; y|])
+    let ladd modestr (x, y, z) =
+      (Predicate.Linked ("sys-add["^modestr^"]", value_of (PI.primop_id Primops.Sys.add), function _ -> function _ -> function _ -> ()),
+       [|x; y; z|])
+    let lconcat modestr (x, y, z) =
+      (Predicate.Linked ("sys-concat["^modestr^"]", value_of (PI.primop_id Primops.Sys.concat), function _ -> function _ -> function _ -> ()),
+       [|x; y; z|])
+    let assign (var, atom) = (Predicate.Assign atom, [|var|])
 
     let show_tail tail =
       "[" ^ (String.concat ", " (List.map Literal.show tail)) ^ "]"
@@ -314,6 +323,11 @@ module APath =
 	[eq("X", "Y"); p("Y"); atom("X")]
 	[p("Y"); leq "fb" ("X", "Y"); atom("X")]
 
+    let test_assign =
+      test
+	[p("X"); assign("X", "foo");]
+	[assign("X", "foo"); p("X");]
+
     (* with normalisation *)
 
     let test_n_singleton = test_n [eq("X", "X")] [atom("X"); leq "bb" ("X", "X")]
@@ -327,6 +341,16 @@ module APath =
       test_n
 	[eq("X", "Y"); p("Y"); atom("X")]
 	[p("Y"); leq "fb" ("X", "Y")]
+
+    let test_n_add =
+      test_n
+	[atom("Y"); add("X", "Y", "Z"); atom("X"); q("X", "Y"); atom("Z")]
+	[q("X", "Y"); ladd "bbf" ("X", "Y", "Z")]
+
+    let test_n_concat =
+      test_n
+	[assign("Z", "foobar"); concat("X", "Y", "Z");]
+	[assign("Z", "foobar"); lconcat "ffb" ("X", "Y", "Z");]
   end
 
 let all_tests = "access-modes" >:::
@@ -371,10 +395,13 @@ let all_tests = "access-modes" >:::
     "ap-reorder-delta-to-head-0" >:: APath.test_reorder_delta;
     "ap-reorder-to-eq-check-0" >:: APath.test_eq_0;
     "ap-reorder-to-eq-check-1" >:: APath.test_eq_1;
+    "ap-reorder-after-assign" >:: APath.test_assign;
 
     "norm-eq-check-0" >:: APath.test_n_eq_0;
     "norm-eq-check-1" >:: APath.test_n_eq_1;
     "norm-singleton" >:: APath.test_n_singleton;
+    "norm-add" >:: APath.test_n_add;
+    "norm-concat" >:: APath.test_n_concat;
   ]
 
 let _ = run_test_tt_main (all_tests)

@@ -26,15 +26,15 @@ open Base
 include Base_literal
 module PrimopInterface = Primop_interface
 
-let variable_modes (vars_before : VarSet.t) ((_, body) : t) =
+let variable_modes (vars_before : VarSet.t) (free_mode) ((_, body) : t) =
   let variable_mode (var) =
     if VarSet.contains vars_before var
     then PrimopInterface.Bound
-    else PrimopInterface.Free
+    else free_mode
   in List.map variable_mode (Array.to_list body)
 
-let get_access_mode (cmp) (bound_variable_set) (literal) (primop_id) =
-  let variable_modes = variable_modes bound_variable_set literal in
+let get_access_mode (cmp) (free_vars_mode) (bound_variable_set) (literal) (primop_id) =
+  let variable_modes = variable_modes (bound_variable_set) (free_vars_mode) literal in
   let access_modes = PrimopInterface.access_modes (variable_modes) (Primops.get primop_id) in
   let rec get_best (current_best) (list) =
     match list with
@@ -49,15 +49,15 @@ let get_access_mode (cmp) (bound_variable_set) (literal) (primop_id) =
       in get_best next_best tl
   in get_best None access_modes
 
-let get_best_access_mode = get_access_mode (PrimopInterface.compare_cost)
-let get_worst_access_mode = get_access_mode (function a -> function b -> PrimopInterface.compare_cost b a)
+let get_best_access_mode = get_access_mode (PrimopInterface.compare_cost) (PrimopInterface.Free)
+let get_worst_access_mode = get_access_mode (function a -> function b -> PrimopInterface.compare_cost b a) (PrimopInterface.Any)
 
 (* Try to link primitive operations, picking the best (cheapest) match.
    May fail if there is no match (returns None).
 *)
 let link (vars_before : VarSet.t) ((predicate, body) as literal : t) : ((t * PrimopInterface.access_mode option) option) =
   let link_primop (primop_name, primop_id) =
-    let variable_modes = variable_modes vars_before literal
+    let variable_modes = variable_modes (vars_before) (PrimopInterface.Free) (literal)
     in match get_best_access_mode (vars_before) (literal) (primop_id) with
       None		-> None
     | Some amode	->
@@ -79,7 +79,7 @@ let atom_bind_cost = 1
 
 let estimate_access_cost (vars_before : VarSet.t) ((predicate, _) as literal : t) : PrimopInterface.access_cost =
   let compute_cost (expected_nr_of_entries, check_cost) = (* compute cost for regular EDB or IDB predicate *)
-    let variable_modes = variable_modes vars_before literal in
+    let variable_modes = variable_modes (vars_before) (PrimopInterface.Free) (literal) in
     let is_check_only = List.for_all (function a -> a = PrimopInterface.Bound) variable_modes
     in if is_check_only
       then PrimopInterface.cost (check_cost)

@@ -71,3 +71,4 @@ let compare l r =
   | (_, Primop _)			-> 1
   | (Linked _, _)			-> -1
   | (_, Delta _)			-> 1
+  | (Assign _, _)			-> -1
