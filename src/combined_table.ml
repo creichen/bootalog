@@ -70,8 +70,8 @@ let insert table (tuple: tuple) : unit =
 
 let remove table (tuple: tuple) : unit =
   match table with
-      SimpleT t				-> Simple_table.remove t tuple
-    | DeltaT (update_flag, delta, t)	-> raise (Failure "Attempted to remove entry from delta table!")
+      SimpleT t		-> Simple_table.remove t tuple
+    | DeltaT _		-> raise (Failure "Attempted to remove entry from delta table!")
 
 let insert' table (tuple) : unit =
   insert table (Array.of_list tuple)

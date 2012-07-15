@@ -96,7 +96,7 @@ let compute_rule_dependencies (ruleset) =
 	     end
 	   end
 	 in
-	 let add_all (((all_tbl, all_co_tbl), (new_tbl, new_co_tbl)) as base) new_data =
+	 let add_all (base) (new_data) =
 	   begin
 	     DepTable.iter (add_new base) new_data
 	   end
@@ -119,7 +119,7 @@ let compute_rule_dependencies (ruleset) =
 	   let tdefs = transitive_defs (new_defs) in
 	   begin
 (*	     Printf.printf "=> New entries(%s, %s) => one-step expand = %s...\n" (DepTable.show new_defs) (DepTable.show new_uses) (DepTable.show tdefs);*)
-	     add_defs_uses (transitive_defs (new_defs)) (* tail recurse *)
+	     add_defs_uses (tdefs) (* tail recurse *)
 	   end
 	 end
   in begin

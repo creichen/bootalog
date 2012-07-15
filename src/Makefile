@@ -24,7 +24,7 @@ BINARY=bootalog
 # units: mod4 and mod5.
 
 # The list of object files for prog2
-DATALOG_OBJS=strlib.cmx error.cmx getopt.cmx compare.cmx \
+DATALOG_OBJS=strlib.cmx error.cmx getopt.cmx compare.cmx option.cmx \
 	dynamic_programming.cmx \
 	variable.cmx \
 	var_set.cmx \

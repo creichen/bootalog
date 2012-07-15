@@ -79,7 +79,7 @@ module DP =
 
     let insert_into_buffer (results_nr : int ref) (buffer : dp_state option array) (entry : dp_state) =
       let buffer_size = Array.length buffer in
-      let estimated_cost_at i : cost = let Some v = Array.get buffer i in v.estimated_cost in
+      let estimated_cost_at i : cost = (Option.value_of (Array.get buffer i)).estimated_cost in
       let insert_at offset =
 	if offset < buffer_size
 	then begin
@@ -121,6 +121,7 @@ module DP =
       if is_success_state (initial_state)
       then Some []
       else
+(*
       let iteration_nr = ref 0 in
       let print_state (array) (entries_nr) =
 	begin
@@ -130,6 +131,7 @@ module DP =
 	  done;
 	  Printf.eprintf "\n%!"
 	end in
+*)
 
       let rec search inputs inputs_nr =
 (*	let () = print_state inputs inputs_nr in*)

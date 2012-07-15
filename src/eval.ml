@@ -43,7 +43,7 @@ let eval_rule (pred_lookup : predicate -> table) ((head_p, head_vars), tail) =
     | (Predicate.Linked (_, _, evaluator), body)::tl	-> evaluator body env (bind_next tl)
     | (Predicate.Assign atom, body)::tl			-> let () = Env.bind env (Array.get body 0) atom
 							   in bind_next tl env
-    | (Predicate.Primop _, _)::tl			-> failwith "Encountered unlinked Primop during rule evaluation"
+    | (Predicate.Primop _, _)::_			-> failwith "Encountered unlinked Primop during rule evaluation"
   in bind_next tail (Env.fresh ())
 
 let eval_stratum db ({ pss; base; delta } : stratum) =

@@ -25,12 +25,8 @@
 exception Malformed
 exception NotADeltaTable
 exception UnexpectedDeltaTable
-exception Option
 
-let value_of x =
-  match x with
-    None	-> raise Option
-  | Some x'	-> x'
+include Option
 
 type atom = Atom.t
 type tuple = Tuple.t
