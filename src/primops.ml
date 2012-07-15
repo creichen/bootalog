@@ -118,6 +118,51 @@ module Sys =
       fmode [ff; bb] (write_cost 1) (* *) (function { get'; set'; cont'; clear' } -> begin set' 0 (get' 1); cont' (); clear' 0 end);
       fmode [bb; bb] min_cost	    (* *) (function { get'; set'=_; cont'; clear'=_ } -> begin if get' 0 = get' 1 then cont' () end)
     ]
+
+    let concat = register "sys-concat" [
+      fmode [bb; bb; bb] min_cost (* *) (function { get'; set'=_; cont'; clear'=_ } -> begin if get'(0) ^ get'(1) = get'(2) then cont' () end);
+      fmode [bb; bb; ff] (write_cost 3) (* *) (function { get'; set'; cont'; clear' } -> begin set' 2 (get'(0) ^ get'(1)); cont' (); clear'(2) end);
+      fmode [bb; ff; bb] (write_cost 4) (* *) (function { get'; set'; cont'; clear' } -> begin
+	let body = get' (2) in
+	let body_len = String.length body in
+	let lhs = get' (0) in
+	let lhs_len = String.length lhs in
+	if lhs_len < body_len
+	then if lhs = String.sub body 0 lhs_len
+	  then begin
+	    set' 1 (String.sub body lhs_len (body_len - lhs_len));
+	    cont' ();
+	    clear' (1)
+	  end end);
+      fmode [ff; bb; bb] (write_cost 4) (* *) (function { get'; set'; cont'; clear' } -> begin
+	let body = get' (2) in
+	let body_len = String.length body in
+	let rhs = get' (1) in
+	let rhs_len = String.length rhs in
+	if rhs_len < body_len
+	then if rhs = String.sub body (body_len - rhs_len) rhs_len
+	  then begin
+	    set' 0 (String.sub body 0 (body_len - rhs_len));
+	    cont' ();
+	    clear' (0)
+	  end end);
+      fmode [ff; ff; bb] (write_cost 4) (* *) (function { get'; set'; cont'; clear' } -> begin
+	let body = get' (2) in
+	let body_len = String.length body in
+	for i = 0 to body_len do
+	  set' 0 (String.sub body 0 i);
+	  set' 1 (String.sub body i (body_len - i));
+	  cont' ();
+	  clear' (0); clear' (1)
+	done
+      end);
+    ]
+
+    let length = register "sys-length" [
+      fmode [bb; ff] (write_cost 3) (* *) (function { get'; set'; cont'; clear'} -> begin set'(1) (string_of_int (String.length(get'(0)))); cont' (); clear'(1) end);
+      fmode [bb; bb] (write_cost 3) (* *) (function { get'; set'=_; cont'; clear'=_} -> begin if get'(1) = (string_of_int (String.length(get'(0)))) then cont' () end);
+    ]
+
   end
 
 let primops = Array.of_list (List.rev !primops_list)

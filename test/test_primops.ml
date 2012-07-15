@@ -104,6 +104,19 @@ let all_tests = "access-modes" >:::
     test_eval "=" [ff; bb] ["42"] [["42"]];
     test_eval' "=" "match" [bb; bb] ["42"; "42"] success;
     test_eval' "=" "mismatch" [bb; bb] ["42"; "23"] failure;
+
+    test_eval' "sys-concat" "match" [bb; bb; bb] ["foo"; "bar"; "foobar"] success;
+
+    test_eval' "sys-concat" "fail-0" [bb; bb; bb] ["foo"; "bar"; "foobarx"] failure;
+    test_eval' "sys-concat" "fail-1" [bb; bb; bb] ["foo"; "bar"; "fooxbar"] failure;
+    test_eval' "sys-concat" "fail-2" [bb; bb; bb] ["foo"; "bar"; "xfoobar"] failure;
+    test_eval "sys-concat" [bb; bb; ff] ["foo"; "bar"] [["foobar"]];
+    test_eval "sys-concat" [bb; ff; bb] ["foo"; "foobar"] [["bar"]];
+    test_eval "sys-concat" [ff; bb; bb] ["bar"; "foobar"] [["foo"]];
+    test_eval "sys-concat" [ff; ff; bb] ["foobar"] [[""; "foobar"]; ["f"; "oobar"]; ["fo"; "obar"]; ["foo"; "bar"]; ["foob"; "ar"]; ["fooba"; "r"]; ["foobar"; ""]];
+
+    test_eval "sys-length" [bb; ff] ["bar"] [["3"]];
+    test_eval "sys-length" [bb; bb] ["bar"; "3"] success;
   ]
 
 let _ = run_test_tt_main (all_tests)
