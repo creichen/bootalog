@@ -117,6 +117,52 @@ let all_tests = "access-modes" >:::
 
     test_eval "sys-length" [bb; ff] ["bar"] [["3"]];
     test_eval "sys-length" [bb; bb] ["bar"; "3"] success;
+
+    test_eval "sys-add" [bb; bb; bb] ["2"; "3"; "5"] success;
+    test_eval "sys-add" [bb; bb; ff] ["2"; "3"] [["5"]];
+    test_eval "sys-add" [bb; ff; bb] ["2"; "25"] [["23"]];
+    test_eval "sys-add" [ff; bb; bb] ["2"; "25"] [["23"]];
+
+    test_eval "sys-sub" [bb; bb; bb] ["2"; "3"; "-1"] success;
+    test_eval "sys-sub" [bb; bb; ff] ["17"; "3"] [["14"]];
+    test_eval "sys-sub" [bb; ff; bb] ["27"; "25"] [["2"]];
+    test_eval "sys-sub" [ff; bb; bb] ["2"; "5"] [["7"]];
+
+    test_eval "sys-mul" [bb; bb; bb] ["6"; "7"; "42"] success;
+    test_eval "sys-mul" [bb; bb; ff] ["6"; "7"] [["42"]];
+    test_eval "sys-mul" [bb; ff; bb] ["10"; "120"] [["12"]];
+    test_eval "sys-mul" [ff; bb; bb] ["10"; "120"] [["12"]];
+
+    test_eval "sys-div" [bb; bb; bb] ["14"; "2"; "7"] success;
+    test_eval "sys-div" [bb; bb; ff] ["42"; "6"] [["7"]];
+    test_eval' "sys-div" "zero" [bb; bb; ff] ["42"; "0"] failure;
+    test_eval "sys-div" [bb; ff; bb] ["42"; "7"] [["6"]];
+    test_eval' "sys-div" "zero" [bb; ff; bb] ["42"; "0"] failure;
+    test_eval "sys-div" [ff; bb; bb] ["6"; "7"] [["42"]];
+
+    test_eval "sys-modulo" [bb; bb; bb] ["23"; "10"; "3"] success;
+    test_eval' "sys-modulo" "zero" [bb; bb; bb] ["23"; "0"; "3"] failure;
+    test_eval' "sys-modulo" "negative" [bb; bb; bb] ["23"; "-3"; "3"] failure;
+    test_eval "sys-modulo" [bb; bb; ff] ["23"; "10"] [["3"]];
+    test_eval' "sys-modulo" "zero" [bb; bb; ff] ["23"; "0"] failure;
+    test_eval' "sys-modulo" "negative" [bb; bb; ff] ["23"; "-3"] failure;
+
+    test_eval' "sys-lt" "true" [bb; bb] ["22"; "23"] success;
+    test_eval' "sys-lt" "bound" [bb; bb] ["23"; "23"] failure;
+    test_eval' "sys-lt" "false" [bb; bb] ["24"; "23"] failure;
+
+    test_eval' "sys-le" "true" [bb; bb] ["22"; "23"] success;
+    test_eval' "sys-le" "bound" [bb; bb] ["23"; "23"] success;
+    test_eval' "sys-le" "false" [bb; bb] ["24"; "23"] failure;
+
+    test_eval' "sys-gt" "false" [bb; bb] ["22"; "23"] failure;
+    test_eval' "sys-gt" "bound" [bb; bb] ["23"; "23"] failure;
+    test_eval' "sys-gt" "true" [bb; bb] ["24"; "23"] success;
+
+    test_eval' "sys-ge" "false" [bb; bb] ["22"; "23"] failure;
+    test_eval' "sys-ge" "bound" [bb; bb] ["23"; "23"] success;
+    test_eval' "sys-ge" "true" [bb; bb] ["24"; "23"] success;
+
   ]
 
 let _ = run_test_tt_main (all_tests)
