@@ -1,0 +1,511 @@
+Bootalog language specification for language versions up to 0.7
+
+
+Preamble
+========
+  Bootalog is an interactive Datalog engine built for the purpose of
+bootstrapping other engines for Datalog-variant languages.  For this
+purpose, the language should be minimal.  However, building a Datalog
+system that builds Datalog systems is nontrivial, so Bootalog includes
+a number of `pre-deprecated' features that are intended to be moved to
+the bootstrapped system later (and then removed from Bootalog, as
+Bootalog will no longer be necessary as a stand-alone system).
+
+  This specification is for version 0.7 of the language used by
+Bootalog.  It specifies and stratifies the language features by
+version number.
+
+  At the time when Bootalog matures to reconstruct itself in other
+languages, this preamble and the language specification shall be
+updated suitably.
+
+
+Background
+==========
+  Historically, Datalog is a logic-based language for database
+programming.  A Datalog program consists of a set of logical rules
+that infer facts about the world: if all of the rule's premises are
+met, the conclusion also holds.  Each fact is represented as a
+predicate p together with a tuple of atoms, e.g.,
+
+  less-than(23, 42)
+
+The predicate corresponds to a table in the database, while the tuple
+correspond to a column in the database (with each of the elements
+having a positionally identified column).
+
+  This language, which we call basic Datalog, monotonically derives
+facts from a database; i.e., it is meaningful only in the context of a
+given fact database.
+
+  We add a number of modest extensions to Datalog, some of which have
+been widely disseminated in the literature, to make it more amenable
+to the task of managing software construction.
+
+
+Language constructs
+===================
+Bootalog takes basic Datalog and adds the following extensions:
+ Version 0.1:
+ - comments
+ - inline atoms
+ - primitive operators
+ Version 0.2:
+ - stratified negation
+ Version 0.3:
+ - higher-order predicates
+ Version 0.4:
+ - nominal parameters
+ - modules
+ Version 0.5:
+ - wildcards
+ - events
+ Version 0.6:
+ - aggregation
+ Version 0.7:
+ - physical realisation of tables
+
+Basic Datalog
+-------------
+In basic Datalog, all rules are constructed from literals.  A literal
+has the form
+
+   <literal> ::= <predicate-symbol> ( <variable_0> , ... , <variable_k> )
+
+  where both <predicate-symbol> and <variable_i> (for any `i') take
+the form of alphanumeric strings, starting with a character, and
+possibly containing "-" or "'" characters.
+
+  Exapmles of literals:
+
+    parent(P, CHLD)
+    name-in-sequence(PREV, NAME, NEXT)
+    allow-feature()
+
+  We use the convention that predicates are in lower case and
+variables in upper case, with name components separated by dashes.
+The system will warn about violations of this naming convention.
+A Datalog rule has the form
+
+  <rule> ::= <literal_0> :- <literal_1> , ... , <literal_k> .
+
+Here, "<literal_0> ." is short for "<literal_0> :- .".  We refer to
+<literal_0> as the rule head, and to "<literal_1> , ..., <literal_k>"
+as the rule body.
+
+  A basic Datalog program is a sequence of rules.
+
+  As an extension, we allow rules with empty bodies to be written as
+
+  <rule> ::= <literal_0> .
+
+
+Basic facts
+-----------
+  A fact is a predicate together with a tuple of atoms.  Facts do not
+occur in basic Datalog programs, only in Datalog text databases.  An
+atom can have any of the following forms:
+
+  - double-quote delimited string (e.g., "foo", "a string",
+    "with \"escapes\" inside")
+  - single-quote escaped identifier (e.g., 'foo, 'an-identifier)
+  - a number in integral or decimal-point notation (e.g., 1, 2.0,
+    -0.42)
+
+
+Comments
+--------
+  Comments in Bootalog follow the ML tradition, i.e., they are
+delimited by "(*" and "*)" characters.  For example,
+
+    (* this is a comment example *)
+    (* and this is another comment (* and I am a nested comment *) example *)
+
+
+Inline atoms
+------------
+  Recall that Datalog programs process fact databases, where each fact
+is a predicate (representing a database table) plus a tuple of atoms
+(the tuple representing a database row, and each of the atoms
+representing a particular cell in that row).  We allow atoms to be
+written in-line, in any place where a variable might be expected, such
+as:
+
+  monday-schedule(X) :- schedule(X, "MONDAY").
+  likes(X, 'raymond).  (* Everybody likes him. *)
+
+
+Primitive operators
+-------------------
+  Bootalog defines a number of primitives as `special' predicates in
+the System library (see below).  Note that these primitives are not as
+flexible as regular predicates; for example, you cannot use
+
+  all-numbers(X) :- sys.add(X, Y, Z).
+
+
+Stratified negation (v0.2)
+--------------------------
+  A literal prefixed by the character `~' is treated as a negated
+literal.  That is, this literal holds iff it cannot be satisfied.  For
+example,
+
+  keys-are-missing() :- ~on('keys, 'table), ~in('keys, 'pocket).
+  vacation-day(D) :- ~work-schedule(D, ENTRY).
+
+It is an error for a negated literal to depend on itself
+indirectly.  For example, the following is nonsensical:
+
+  p(X) :- ~p(X).
+
+Such dependencies may occur implicitly.  If the system detects a
+static dependency between a predicate and a negated form of the same
+predicate, it explains the dependency and rejects the program.
+
+(This may be subject to later revision: there are more generous
+execution models, but it is not clear if those will be necessary for
+Bootalog.)
+
+
+higher-order predicates (v0.3)
+------------------------------
+  Predicates may be used as literals, e.g.
+
+    comparison(less-than).
+    p(X) :- q(rel), rel(X).
+
+The system will warn whenever a lower-case (relation) name occurs as a
+variable name on the right-hand side without also being used as a
+relation.
+
+  Variables can now range not only over atoms, but over the wider
+class of objects.  In this version, objects are atoms and relations.
+
+  Higher-order predicates complicate stratification, so static
+warnings become more likely.
+
+(This may be subject to later revision: there are more generous
+execution models, but it is not clear if those will be necessary for
+Bootalog.)
+
+
+Modules (v0.4)
+--------------
+  In this version, we extend the notion of objects further to include
+modules.
+
+  We adjust the syntax as follows:
+
+<def> ::= <rule>
+      	| <name-def>
+
+<defs> ::= (* empty *)
+         | <def> <multi-defs>
+
+<multi-defs> ::= (* empty *)
+	       | ";" <def> <multi-defs>
+
+<rule> ::= <head-literal> ":-" <literal> */","
+
+<head-literal> ::= <pos-literal>
+
+<literal> ::= <pos-literal>
+	    | "~" <pos-literal>	(* negative literal *)
+
+<pos-literal> ::= <object> <object>
+	        | <object> "=" <object>
+
+<object> ::= <atom>
+	   | <name>
+	   | <module>
+	   | <object> "." <name>
+
+<module> ::= "(" <defs> ")"
+
+<name-def> ::= <name> ":" <object>
+
+
+  We use lexical scoping.
+
+
+Nominal parameters (v0.4)
+-------------------------
+  Beginning with this version, positional parameters are replaced by
+nominal parameters as per the syntax above, with a few exceptions.
+For example, we now write
+
+  ancestor(A; descendant: D) :- ancestor(A; descendant:P),
+                                 parent(P; child:D);
+
+which is short for
+
+  ancestor(ancestor: A; descendant: D) :-
+       ancestor(ancestor: A; descendant: P),
+       parent(parent: P; child: D);
+
+  Specifically, positional parameters obtain the following implicit
+names:
+  (a) if there is only one positional parameter, it obtains the prefix
+      name.
+  (b) if there are k positional parameters, they obtain the name
+      obtained from concatenating the prefix name with the string
+      representation of their relative ordering within the sequence of
+      positional parameters, starting at 0.  For example,
+
+        p(a:V, W, b:X, Y, c:Z)
+
+      expands to
+
+        p(a:V, p0:W, b:X, p1:Y, c:Z)
+
+  (c) the prefix name is defined as follows:
+      Let <pos-literal> ::= <object> <module>, where
+      <module> contains the positional parameters.
+      If <object> = <name>, then the prefix name is <name>.
+      If <object> = <object> "." <name>, then the prefix name is again
+      <name>.
+
+  Implicit positional parameters are only provided on the right-hand
+side of rules, and only as a short hand for input.
+
+
+Wildcards (v0.5)
+----------------
+  We allow the character "_" to be used to denote a `fresh name' for
+variable binding purposes, as in:
+
+  not-the-smallest-number(not-min: X) :-
+          less-than(_, X).  (* something is smaller *)
+
+
+Events (v0.5)
+-------------
+  An event is a "linear" fact (predicate and tuple of objects) that
+injects itself into every module that references a module that it
+lives in.  In any module, if the event encounters at least one rule
+that "consumes" the fact, it triggers all relevant rules and ceases
+its traversal.
+
+  We mark events by preceding them with an asterisk ("*").  For
+example, the following triggers an *inconsistent-switch(X) event:
+
+  *inconsistent-switch(X) :- enabled(switch:X), disabled(switch:X).
+
+  Such rules may generate multiple events, but each event is generated
+only once (and triggers only one consumption).  To trigger the same
+event multiple times, multiple copies of the same rule must be used.
+
+  Events reside in a separate namespace.
+
+
+Aggregation (v0.6)
+------------------
+  Aggregation is unordered reduction of all possible bindings to
+variables that match the body of a rule.  Syntactically, aggregations
+occur in the tail and are bracketed by "<" and ">", as in the
+following:
+
+  p(sum:Z) :- p(X), <sys.sum>(X; <Z:0>; Z);
+
+sums up all values.  To count, do the following:
+
+  p(count:Z) :- p(X), <sys.sum>(1; <Z:0>; sum:Z);
+
+
+
+Physical realisation of tables (v0.7)
+-------------------------------------
+To manifest a database represented by predicate r, ensure that it is
+in a relation
+
+  sys.edb(r, FILE, sys.db)
+
+or
+
+  sys.edb(r, FILE, sys.text-db)
+
+where FILE is a suitable file object (cf. the System library).
+Uses of this relation are stratified, so they may not depend on r.
+Otherwise an error will be issued and the program will be rejected.
+
+
+
+System library
+==============
+
+Events
+------
+*print(msg)
+
+  if this event reaches the toplevel, it will print the message msg.
+
+*error(error-object)
+
+  used by the system library to signal errors.  If this event reaches
+the toplevel, it will print a derivation of the event; client code can
+use this to trigger errors.
+
+*warning(error-object)
+
+  used by the system to signal violations of conventions.  Can be
+turned into errors through a flag to the system.
+
+
+File primitives
+---------------
+
+sys.file.name(name : string, file : file)
+
+  Relate file name and a corresponding file object.
+  File names are normalised to POSIX filenames.
+
+sys.file.dir(dir : file, name : string, element : file)
+
+  obj is a directory containing the specified element files.
+
+sys.file.sys-dir(dir : file)
+
+  dir is a `system' directory (ends in `.' or `..').
+
+sys.file.symlink(file : file)
+
+sys.file.ancestor(dir : file, name : string, file : file)
+
+  Recursive version of `file.dir'.  Particularly useful for extracting
+  relative paths.
+
+sys.file.base-dir(file : file)
+
+  Database base directory
+
+sys.file.home-dir(file : file)
+
+  User home directory
+
+
+SSH primitives
+--------------
+
+sys.ssh.auth-default(auth : ssh-auth)
+
+  The default authentication object for ssh.
+
+sys.ssh.file(host : string, auth : ssh-auth, dir : file)
+
+  Basic remote (ssh) access to a file
+
+
+Sys library
+-----------
+
+sys.db
+
+  Special relation used for sys.edb.  Represents database files.
+
+sys.text-db
+
+  Special relation used for sys.edb.  Represents text files.
+
+sys.edb(r, file : file, format : db-format)
+
+  Establishes that relation r is manifest in the specified file in the
+specified format (sys.db or sys.text-db).
+
+sys.atom(obj)
+
+  obj is an atom
+
+sys.concat(concat0, concat1, result)
+
+  Concatenates two strings
+
+sys.username(name : string)
+
+  The user's user name
+
+sys.range(min, val, max)
+
+  `val' is in Integral range from `min' to `max' (inclusive)
+
+sys.add(add0, add1, sum)
+
+  addition
+
+sys.sub(sub, subtrahend, difference)
+
+  subtraction
+
+sys.mul(mul0, mul1, product)
+
+  multiplication
+
+sys.div(div, divisor, quotient)
+
+  division
+
+sys.mod(mod, modulus, remainder)
+
+  modulo
+
+sys.lt(lt0, lt1)
+
+  less-than
+
+sys.lte(lte0, lte1)
+
+  less-than-or-equal
+
+sys.gt(gt0, gt1)
+
+  greater-than
+
+sys.gte(gte0, gte1)
+
+  greater-than-or-equal
+
+
+
+Interaction with Bootalog
+=========================
+Bootalog accepts input in three formats:
+
+- text databases
+- programs
+- interactive input
+
+Text databases
+--------------
+Text databases carry plain facts as text, without any separators, such
+as:
+
+  expenses('january, 42.70)
+  expenses('february, 23.91)
+
+
+Programs
+--------
+Bootalog programs are collections of rules.  They must not contain
+facts, though they may contain rules that derive facts.
+
+Interactive input
+-----------------
+Interactive input allows both facts and rules to be specified.  It is
+explained separately by the Bootalog interactive runtime toplevel's
+built-in documentation.
+
+  However, note that any program is also valid input to the
+interactive system.
+
+
+Outlook
+=======
+Future revision of the language specification will focus on language
+features specifically aimed at program construction and manipulation,
+specifically:
+  - parsing
+  - unparsing
+  - realisation of programs as modules
+  - interaction with external tools
+  - primitives for implementing Datalog within Bootalog
+
+

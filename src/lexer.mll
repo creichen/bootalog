@@ -53,6 +53,7 @@ rule lex =
       | ident as i					{ ret (LName i) }
       | '\'' (ident as i)				{ ret (LAtom i) }
       | posnum as n					{ ret (LAtom n) }
+      | posnum '.' posnum as n				{ ret (LAtom n) }
       | '"' (( '\\' _ | [^ '\\' '"'])* as qs) '"'	{ ret (LAtom (Strlib.dequote qs)) }
       | [ ' ' '\t' '\r' ]+				{ lex lexbuf }
       | "\n"						{ begin	line_nr := 1 + !line_nr; line_offset := Lexing.lexeme_start lexbuf; lex lexbuf end }
