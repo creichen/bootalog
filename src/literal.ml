@@ -69,6 +69,8 @@ let link (vars_before : VarSet.t) ((predicate, body) as literal : t) : ((t * Pri
     Predicate.Primop (a,b)	-> link_primop (a,b)
   | other			-> Some ((other, body), None)
 
+let is_neg (s, _) = Predicate.is_neg s
+
 
 let atom_predicate_entries = 1000
 let base_predicate_entries = 100
@@ -84,15 +86,17 @@ let estimate_access_cost (vars_before : VarSet.t) ((predicate, _) as literal : t
     in if is_check_only
       then PrimopInterface.cost (check_cost)
       else PrimopInterface.cost (expected_nr_of_entries * predicate_element_read_cost)
-
-  in match predicate with
-    Predicate.Primop (_, id)	-> (value_of (get_worst_access_mode (vars_before) (literal) (id))).PrimopInterface.cost
-  | Predicate.P _		-> (if predicate = Predicate.atom
-                                    then compute_cost (atom_predicate_entries, 0)
-                                    else compute_cost (base_predicate_entries, predicate_element_check_cost))
-  | Predicate.Delta _		-> compute_cost (delta_predicate_entries, predicate_element_check_cost)
-  | Predicate.Assign _		-> PrimopInterface.cost atom_bind_cost
-  | Predicate.Linked _		-> failwith "estimate_access_cost shouldn't be called on linked predicates"
+  in let rec do_check p =
+       match p with
+	 Predicate.Primop (_, id)	-> (value_of (get_worst_access_mode (vars_before) (literal) (id))).PrimopInterface.cost
+       | Predicate.P _			-> (if predicate = Predicate.atom
+                                	    then compute_cost (atom_predicate_entries, 0)
+                         	            else compute_cost (base_predicate_entries, predicate_element_check_cost))
+       | Predicate.Delta _		-> compute_cost (delta_predicate_entries, predicate_element_check_cost)
+       | Predicate.Assign _		-> PrimopInterface.cost atom_bind_cost
+       | Predicate.Linked _		-> failwith "estimate_access_cost shouldn't be called on linked predicates"
+       | Predicate.Neg p		-> do_check (p)
+     in do_check predicate
 
 let link_and_get_access_cost (vars_before : VarSet.t) (literal : t) : ((t * PrimopInterface.access_cost) option) =
   match link (vars_before) (literal) with

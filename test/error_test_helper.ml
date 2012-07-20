@@ -22,27 +22,25 @@
 
 ***************************************************************************)
 
-open Base
-open Program
-module DB = Database
+open OUnit
 
-module DBFrontend =
-struct
-  let create () =
-    DB.create (Combined_table.create)
-
-  (* EDB insertion *)
-  let add db ((predicate, tuple) : fact) =
-    let insert pred tuple = Combined_table.insert (DB.get_table db pred) tuple
-    in begin
-      insert (Predicate.P predicate) tuple;
-      Array.iter (function v -> insert Predicate.atom [|v|]) tuple
+let no_errors closure () =
+  try
+    closure ()
+  with Errors.ProgramError errs ->
+    begin
+      assert_failure ("Unexpected program errors:\n" ^
+			 Errors.show_errors errs)
     end
 
-  (* EDB removal *)
-  let remove db ((predicate, tuple) : fact) =
-    Combined_table.remove (DB.get_table db (Predicate.P predicate)) tuple
-
-  let import db (facts : fact list) =
-    List.iter (add db) facts
-end
+let expect_errors (expected_errors) closure () =
+  try
+    closure ();
+    failwith "No exceptions observed!"
+  with Errors.ProgramError actual_errors ->
+    if Errors.all_equal actual_errors expected_errors
+    then ()
+    else assert_failure ("Mismatches in exception lists:\nExpected:\n"
+			 ^ (Errors.show_errors expected_errors) ^ "\n"
+			 ^ "\n Actual:\n"
+			 ^ (Errors.show_errors actual_errors) ^"\n")

@@ -26,6 +26,7 @@ open Base
 open Frontend
 open Program.Lexeme
 open OUnit
+open Error_test_helper
 module AP = Access_path
 module PI = Primop_interface
 
@@ -262,7 +263,7 @@ module APath =
 	  let (_, result) = AP.select (q(ha0, ha1), tail)
 	  in failwith (Printf.sprintf "Expected failure on %s but got %s" (show_tail tail) (show_tail result))
 	end
-      with BaseRule.IllFormedRule _ -> ()
+      with Errors.ProgramError _ -> ()
 
     let test_one normaliser tail expected =
       let ha0 = "X" in
@@ -351,6 +352,11 @@ module APath =
       test_n
 	[assign("Z", "foobar"); concat("X", "Y", "Z");]
 	[assign("Z", "foobar"); lconcat "ffb" ("X", "Y", "Z");]
+
+    let test_n_neg =
+      test_n
+	[Literal.neg (p("X")); q("X", "Y");]
+	[q("X", "Y"); Literal.neg (p("X"));]
   end
 
 let all_tests = "access-modes" >:::
@@ -402,6 +408,7 @@ let all_tests = "access-modes" >:::
     "norm-singleton" >:: APath.test_n_singleton;
     "norm-add" >:: APath.test_n_add;
     "norm-concat" >:: APath.test_n_concat;
+    "norm-neg" >:: APath.test_n_neg;
   ]
 
 let _ = run_test_tt_main (all_tests)

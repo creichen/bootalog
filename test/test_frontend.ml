@@ -26,6 +26,7 @@ open Base
 open Frontend
 open Program.Lexeme
 open OUnit
+open Error_test_helper
 
 let lex s =
   let buf = Lexing.from_string s in
@@ -96,11 +97,16 @@ let all_tests = "frontend" >:::
     "parse-p-2" >:: check_parse_p [(p("X", "Y"), [q("X"); q("Y")])] "p(X,Y) :- q(X), q(Y).";
     "parse-p-3" >:: check_parse_p [(q("X"), [q("X")]); (r(), [])] "q(X) :- q(X). r().";
     "parse-p-4" >:: check_parse_p [(q("X"), [q("X")])] "q(X) :- q(X).";
+    "parse-neg" >:: check_parse_p [(q("X"), [Literal.neg (q("X"))])] "q(X) :- ~q(X).";
+    "parse-neg-fail-head" >:: expect_errors [Errors.ParseError (1, 3, Errors.Parser.msg_negative_head "~q(X)")]
+                              (check_parse_p [(Literal.neg (q("X")), [(q("X"))])] "~q(X) :- q(X).");
     "parse-p-lit-0" >:: check_parse_p [(q("X"), [assign(0,"42"); p("X", tmpvar(0))])] "q(X) :- p(X, 42).";
     "parse-p-lit-1" >:: check_parse_p [(q("X"), [assign(0,"23"); assign(1, "42"); p(tmpvar(0), tmpvar(1))])] "q(X) :- p(23, \"42\").";
     "parse-p-lit-2" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"42")])] "q(42).";
     "parse-p-lit-3" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"teatime")])] "q('teatime).";
     "parse-p-builtin-0" >:: check_parse_p [(q("X"), [assign(0,"foobar"); (Primops.Sys.concat, [|"X"; "Y"; tmpvar(0)|])])] "q(X) :- sys-concat(X,Y,\"foobar\").";
+    "parse-builtin-fail-head" >:: expect_errors [Errors.ParseError (1, 11, Errors.Parser.msg_primop_in_head "sys-length")]
+                                  (check_parse_p [((Primops.Sys.length, [|"X"|]), [(q("X"))])] "sys-length(X) :- q(X).");
     "parse-p-eq-0" >:: check_parse_p [(q("X"), [assign(0,"foobar"); (Primops.Sys.eq, [|"X"; tmpvar(0)|])])] "q(X) :- =(X,\"foobar\").";
     "parse-i-0" >:: check_parse_i [Program.DAddFact ("q", [|"1"|])] "+q(1).";
     "parse-i-1" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1).";

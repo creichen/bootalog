@@ -35,6 +35,7 @@ DATALOG_OBJS=strlib.cmx error.cmx getopt.cmx compare.cmx option.cmx \
 	fact.cmx \
 	base_literal.cmx \
 	base_rule.cmx \
+	errors.cmx \
 	stratum.cmx \
 	stratified_ruleset.cmx \
 	rule_set.cmx \

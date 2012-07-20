@@ -30,6 +30,8 @@ type env = Env.t
 module Table = Combined_table
 type table = Table.t
 
+let const_empty_array = [||]
+
 let eval_rule (pred_lookup : predicate -> table) ((head_p, head_vars), tail) =
   let bind_final (env) =
     let atoms = Array.map (Env.find env) head_vars
@@ -44,6 +46,17 @@ let eval_rule (pred_lookup : predicate -> table) ((head_p, head_vars), tail) =
     | (Predicate.Assign atom, body)::tl			-> let () = Env.bind env (Array.get body 0) atom
 							   in bind_next tl env
     | (Predicate.Primop _, _)::_			-> failwith "Encountered unlinked Primop during rule evaluation"
+    | (Predicate.Neg negpred, body)::tl			-> let failure = ref false in
+							   let failing_evaluator _ _ _ = failure := true
+							   in begin
+							     bind_next
+							       [(negpred, body);
+								  (* Introduce fake primop for the sole reason of failing *)
+								(Predicate.Linked ("FAIL", 0, failing_evaluator), const_empty_array)]
+							       (env);
+							     if not !failure
+							     then bind_next tl env
+							   end
   in bind_next tail (Env.fresh ())
 
 let eval_stratum db ({ pss; base; delta } : stratum) =

@@ -33,6 +33,7 @@ type t =
 | Primop        of string * primop_id
 | Linked	of string * primop_id * evaluator
 | Assign	of Atom.t
+| Neg		of t
 
 let atom = P "atom"
 let query = P "?"  (* used for interactive queries *)
@@ -42,20 +43,36 @@ let is_delta s =
     Delta _	-> true
   | _		-> false
 
-let show (p) =
+let rec show (p) =
   match p with
     P p			-> p
   | Delta d		-> "D[" ^ d ^ "]"
   | Primop (s, _)	-> s
   | Linked (s, _, _)	-> s
   | Assign atom		-> Atom.show (atom) ^ "="
+  | Neg t		-> "~" ^ (show t)
 
 let delta s =
   match s with
     P p				-> Delta p
   | _				-> raise (Failure ("Attempted deltafication of predicate `"^ (show s) ^"'"))
 
-let compare l r =
+let neg s =
+  match s with
+    Neg t	-> t
+  | _		-> Neg s
+
+let is_neg s =
+  match s with
+    Neg _	-> true
+  | _		-> false
+
+let non_negative s =
+  match s with
+    Neg p	-> p
+  | p		-> p
+
+let rec compare l r =
   match (l, r) with
   | ((P a,P b)
 	| (Delta a, Delta b))		-> String.compare a b
@@ -63,12 +80,15 @@ let compare l r =
   | (Linked (_, a, _),
      Linked (_, b, _))			-> b - a
   | (Assign a, Assign b)		-> Atom.compare a b
+  | (Neg a, Neg b)			-> compare a b
   | (P _, _)				-> -1
-  | (_, Assign _)			-> 1
+  | (_, Neg _)				-> 1
   | (Delta _, _)			-> -1
-  | (_, Linked _)			-> 1
+  | (_, Assign _)			-> 1
   | (Primop _, _)			-> -1
-  | (_, Primop _)			-> 1
+  | (_, Linked _)			-> 1
   | (Linked _, _)			-> -1
-  | (_, Delta _)			-> 1
+  | (_, Primop _)			-> 1
   | (Assign _, _)			-> -1
+  | (_, Delta _)			-> 1
+  | (Neg _, P _)			-> -1

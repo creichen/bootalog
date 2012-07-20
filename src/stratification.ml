@@ -58,9 +58,77 @@ struct
        in "{| " ^ (String.concat ", " elts) ^ " |}"
 end
 
+(* Signals success when searching justification for stratification failure *)
+exception StratificationFailure_FoundOne of (Predicate.t *  Rule.t) list
+type psr_trace = (PredicateSet.t * Rule.t * (Predicate.t * Rule.t) list)
+
 let compute_rule_dependencies (ruleset) =
+  let stratification_failed_for (failures : Predicate.t list) =
+    let pset_rules = List.map (function rule -> Rule.body_nonnegativised_predicates (rule), rule) (ruleset) in
+    let psr_map = Hashtbl.create (List.length (pset_rules)) in
+    let () = begin
+      let add_rule ((_, ((p, _), _)) as psr_rule) =
+	Hashtbl.add (psr_map) (Predicate.non_negative p) psr_rule
+      in List.iter add_rule pset_rules;
+      (* let print_x p (ps, r) = *)
+      (* 	Printf.eprintf "  %s: %s, %s\n%!" (Predicate.show (p)) (PredicateSet.show (ps)) (Rule.show r) *)
+      (* in Hashtbl.iter print_x psr_map *)
+    end in
+
+      (* let show_reason (p, rule) = Printf.sprintf "<%s in %s>" (Predicate.show p) (BaseRule.show rule) in *)
+      (* let show_trace (prs) = "[" ^ (String.concat "; " (List.map (show_reason) (prs))) ^ "]" in *)
+      (* let show_psr (ps, r, trace) = "  (" ^ (PredicateSet.show ps) ^ ", " ^ (Rule.show r) ^ ", " ^ (show_trace trace) ^ ")" in *)
+      (* let show_psrs (psrs) = String.concat "\n" (List.map show_psr psrs) in *)
+
+    let explain_failure (base_error_predicate) =
+      let base_error_predicate = Predicate.non_negative (base_error_predicate) in
+      (* first step: *)
+      let candidate_rules =
+	let psrs = Hashtbl.find_all (psr_map) (base_error_predicate)
+	in List.map (function (ps, r) -> (ps, r, [])) (psrs) in
+      (* Our rule choices have type (pset * rule * (predicate * rule) list) *)
+
+      (* BFS step: *)
+      let search_forward (psrs : psr_trace list) : psr_trace list =
+	let expand_psr (tl : psr_trace list) ((ps, r, trace) : psr_trace) : psr_trace list =
+	  if PredicateSet.contains ps base_error_predicate
+	  then raise (StratificationFailure_FoundOne ((base_error_predicate, r) :: trace))
+	  else let new_choices (pred) (tail) : psr_trace list =
+		 let new_psrs = Hashtbl.find_all (psr_map) (pred) in
+		 let add_new_psr_to_top (pset, rule) = (pset, rule, (pred, r)::trace) in
+		 let new_results = (List.map (add_new_psr_to_top) (new_psrs))
+		 in begin
+		   (* Printf.eprintf "  %s yields %s\n%!" (Predicate.show pred) (show_psrs new_results); *)
+		   new_results @ tail
+		 end
+	       in begin
+		 (* Printf.eprintf "  %s not in %s, so expanding\n%!" (Predicate.show base_error_predicate) (PredicateSet.show ps); *)
+		 PredicateSet.fold (new_choices) (ps) (tl)
+	       end
+	in List.fold_left (expand_psr) ([] : psr_trace list) (psrs)
+
+      (* in *)
+      (* let () = Printf.eprintf "Searching for justification for %s\n%!" (Predicate.show base_error_predicate) *)
+
+      (* Search: *)
+      in let trace =
+	   let rec search_forever (psrs) =
+	     begin
+	       (match psrs with
+		 []	-> failwith "Internal error: could not find justification for stratification failure"
+	       | _	-> ());
+	       (* Printf.eprintf "Next trace = %s\n%!" (show_psrs psrs); *)
+	       search_forever (search_forward (psrs))
+	     end
+	   in try
+		search_forever (candidate_rules)
+	     with StratificationFailure_FoundOne (trace) -> trace
+	 in Errors.StratificationFailed (base_error_predicate, List.rev (trace))
+    in raise (Errors.ProgramError (List.map explain_failure (failures)))
+  in
   let table_new () = DepTable.create (List.length (ruleset))
   in
+  let illegal_reads = table_new () in (* p(X) :- ~q(X)  means that PredicateSet.contains (DepTable.lookup (illegal_reads, "q")) "p" *)
   let all_defs = table_new () in
   let all_uses = table_new () in
   let new_defs = table_new () in
@@ -74,8 +142,12 @@ let compute_rule_dependencies (ruleset) =
     end
   in
   let insert_base (((predicate, _), _) as rule) =
-    let body_predicates = Rule.body_predicates (rule)
-    in add new_defs new_uses predicate body_predicates
+    let body_predicates = Rule.body_nonnegativised_predicates (rule) in
+    let body_neg_predicates = Rule.body_neg_predicates (rule)
+    in begin
+      add new_defs new_uses predicate body_predicates;
+      PredicateSet.iter (function neg_predicate -> DepTable.insert illegal_reads neg_predicate predicate) (body_neg_predicates)
+    end
   in (* initialise new_defs and new_uses *)
   let () = List.iter insert_base ruleset
   in (* initial set of dependencies computed, now compute closure *)
@@ -125,6 +197,20 @@ let compute_rule_dependencies (ruleset) =
   in begin
 (*    Printf.printf "Init adding...\n";*)
     add_defs_uses (new_defs);
+    let failures = ref [] in
+    let check_broken_predicate pred _ =
+      if PredicateSet.contains (DepTable.lookup (all_uses) (Predicate.non_negative pred)) (Predicate.non_negative pred)
+      then begin
+(*	Printf.eprintf "  Predicate %s depends illegally on itself\n%!" (Predicate.show pred);*)
+	failures := pred :: !failures
+      end
+      in begin
+	DepTable.iter check_broken_predicate illegal_reads;
+	match !failures with
+	  []	-> ()  (* all could be stratified *)
+	| _	-> ignore (stratification_failed_for (!failures));
+      end;
+    (* result: *)
     (all_defs, all_uses)
   end
 

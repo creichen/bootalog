@@ -34,6 +34,8 @@ let lookup env variable =
   try Some (find env variable)
   with Not_found -> None
 
+let bound = Hashtbl.mem
+
 let bind = Hashtbl.replace
 let unbind = Hashtbl.remove
 

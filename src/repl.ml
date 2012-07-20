@@ -256,16 +256,17 @@ let repl () =
 	'\\'	-> let cmd = String.sub input 1 (String.length input - 1)
 		   in process_command (cmd)
       | _	-> List.iter (process_interactive) (Parser.parse_interactive (Lexing.from_string (input)))
-    with Rule.IllFormedRule rule -> (ierror ("Ill-formed rule: " ^ (Rule.show rule)))
-    | Parser.ParseError (line, offset, message) ->
+    with Errors.ProgramError [Errors.ParseError (line, offset, message)] ->
       begin
 	if line = 1
 	then begin
 	      pad (offset + 2);
 	      print_string "^"
 	    end;
-	  Printf.printf "L%d %d: parse error: %s\n" line offset message
+	  Printf.eprintf "L%d %d: parse error: %s\n" line offset message
       end
+    | Errors.ProgramError (errorlist) ->
+      Printf.eprintf "%s\n" (Errors.show_errors errorlist)
   in while (!running) do
       iter ()
     done
@@ -286,6 +287,8 @@ let _ =
     end
   with Arg_fail -> (prerr_string (sprintf "\nTry %s --help for usage help\n" Sys.executable_name);
 		    exit 1)
-  | Rule.IllFormedRule rule -> (prerr_string ("Ill-formed rule: " ^ (Rule.show rule) ^ "\n");
-			exit 1)
+  | Errors.ProgramError (errorlist) -> begin
+    Printf.eprintf "%s" (Errors.show_errors errorlist);
+    exit 1
+  end
   | End_of_file -> exit 0

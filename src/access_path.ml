@@ -56,7 +56,10 @@ struct
 	then tl
 	else h::(remove (i-1) tl)
     in let new_literal_list = remove action_index literal_list in
-       let new_vars = VarSet.union (Literal.vars (literal)) (vars)
+       let new_vars = (* for literals, we don't bind any variables *)
+	 if Literal.is_neg literal
+	 then vars
+	 else VarSet.union (Literal.vars (literal)) (vars)
        in (new_vars, new_literal_list)
 
   let is_success_state (_, list) = list = []
@@ -88,4 +91,4 @@ let select ((head, tail) as rule : rule) =
     let extract (_, _, literal) = literal
     in match result with
       Some new_tail	-> (head, List.map extract new_tail)
-    | None		-> raise (BaseRule.IllFormedRule rule)
+    | None		-> raise (Errors.ProgramError [Errors.NoAccessPath rule])

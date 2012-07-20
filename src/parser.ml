@@ -26,8 +26,6 @@ open Base
 open Program
 open Program.Lexeme
 
-exception ParseError of int * int * string
-
 (* Generate the ith temporary variable name for the given rule *)
 let gen_temp_var_name (i) =
   Printf.sprintf "$%d" i
@@ -37,7 +35,7 @@ let generic_parse lexbuf =
   let line = ref 0 in
   let offset = ref 0 in
   let error msg =
-    raise (ParseError (!line, !offset, msg))
+    raise (Errors.ProgramError [Errors.ParseError (!line, !offset, msg)])
   in
   let error_unexpected token insth =
     error (Printf.sprintf "unexpected: %s in %s" (Program.Lexeme.show token) insth)
@@ -96,8 +94,9 @@ let generic_parse lexbuf =
   let accept_atom () =
     let checker other =
       match other with
-	  LAtom a	-> Some a
-	| _		-> None
+	LAtom a	-> Some a
+      (* FIXME: LMinus *)
+      | _	-> None
     in try_next checker
   in
 
@@ -186,9 +185,12 @@ let generic_parse lexbuf =
   in
 *)
   let assert_basic_predicate_in_literal ((head_p, _) as literal) =
-    match Primop_interface.primop_id (head_p) with
-      None	-> literal
-    | Some nid	-> error ("Primitive operator `" ^ (Primops.get_name nid) ^ "' in illegal location")
+    let result = match Primop_interface.primop_id (head_p) with
+	None		-> literal
+      | Some nid	-> error (Errors.Parser.msg_primop_in_head (Primops.get_name nid))
+    in if Predicate.is_neg (head_p)
+      then error (Errors.Parser.msg_negative_head (Literal.show literal))
+      else result
   in
 
   (* Recursive descent parsers *)
@@ -244,7 +246,11 @@ let generic_parse lexbuf =
     | _		-> error "Expected predicate name"
 
   and parse_base_literal () : literal =
-    parse_base_literal_tail (parse_predicate ())
+    let neg = accept (LTilde) in
+    let body = parse_base_literal_tail (parse_predicate ())
+    in if neg
+      then Literal.neg (body)
+      else body
 
   and parse_literal () : literal =
     parse_base_literal ()

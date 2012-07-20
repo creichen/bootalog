@@ -33,4 +33,8 @@ let show (symbol, varlist) =
   Predicate.show(symbol) ^ "(" ^ (String.concat ", " (List.map Variable.show (Array.to_list varlist))) ^ ")"
 let compare = Compare.join (Predicate.compare) (Compare.array_collate Variable.compare)
 
+let neg (p, body) = (Predicate.neg p, body)
+
+let is_neg (p, _) = Predicate.is_neg (p)
+
 let vars (_, vars) = VarSet.of_array (vars)
