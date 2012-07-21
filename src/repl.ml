@@ -256,7 +256,7 @@ let repl () =
 	'\\'	-> let cmd = String.sub input 1 (String.length input - 1)
 		   in process_command (cmd)
       | _	-> List.iter (process_interactive) (Parser.parse_interactive (Lexing.from_string (input)))
-    with Errors.ProgramError [Errors.ParseError (line, offset, message)] ->
+    with Errors.ProgramError [Errors.ParseError ((line, offset), message)] ->
       begin
 	if line = 1
 	then begin
@@ -273,7 +273,7 @@ let repl () =
 
 let _ =
   try
-    let action, _args = process_commandline Error.report options INTERACTIVE
+    let action, _args = process_commandline (output_string stderr) options INTERACTIVE
     in begin
       List.iter load_rules !program_files;
       List.iter load_text_data !text_data_files;

@@ -7,7 +7,7 @@ INCLUDES=-I ../src
 PACKAGES=-package str -package oUnit -package num
 OCAMLFLAGS=-g -w A-E $(INCLUDES) ${PACKAGES}
 OCAMLOPTFLAGS=$(INCLUDES) ${PACKAGES}
-CMX_DEPS=../src/strlib.cmx ../src/error.cmx ../src/getopt.cmx ../src/compare.cmx ../src/option.cmx \
+CMX_DEPS=../src/strlib.cmx ../src/getopt.cmx ../src/compare.cmx ../src/option.cmx \
 	../src/dynamic_programming.cmx \
 	../src/variable.cmx \
 	../src/var_set.cmx \

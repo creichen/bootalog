@@ -25,7 +25,7 @@
 module BaseRule = Base_rule
 
 type error =
-  ParseError of (* line *) int * (* column *) int * (* message *) string
+  ParseError of ((* line *) int * (* column *) int) * (* message *) string
 | NoAccessPath of BaseRule.t
 | StratificationFailed of Predicate.t * (Predicate.t * BaseRule.t) list (* starting with a rule that has the predicate in the rhs, ending with it in the lhs *)
 
@@ -38,9 +38,11 @@ let equals (aerrors) (berrors) =
     (ProgramError alist, ProgramError blist)	-> all_equal (alist) (blist)
   | _						-> false
 
+let show_pos (line, offset) = Printf.sprintf "L%d %d" line offset
+
 let show_error (error) =
   match error with
-    ParseError (line, offset, message)	-> Printf.sprintf "L%d %d: parse error: %s\n" line offset message
+    ParseError (pos, message)		-> Printf.sprintf "%s: parse error: %s\n" (show_pos pos) message
   | NoAccessPath (rule)			-> Printf.sprintf "Error in rule %s:\nCould not find viable access path" (BaseRule.show (rule))
   | StratificationFailed (pred,
 			  derivation)	-> let predlen p = String.length (Predicate.show p) in

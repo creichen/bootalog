@@ -30,12 +30,18 @@ open Program.Lexeme
 let gen_temp_var_name (i) =
   Printf.sprintf "$%d" i
 
+let default_warning_reporter = print_endline
+let warning_reporter = ref (default_warning_reporter)
+
 let generic_parse lexbuf =
   let past_tokens : lexeme list ref = ref [] in
   let line = ref 0 in
   let offset = ref 0 in
+  let get_pos () = (!line, !offset) in
+  let warning msg =
+    (!warning_reporter) (Printf.sprintf "%s: %s" (Errors.show_pos (get_pos()))  msg) in
   let error msg =
-    raise (Errors.ProgramError [Errors.ParseError (!line, !offset, msg)])
+    raise (Errors.ProgramError [Errors.ParseError (get_pos(), msg)])
   in
   let error_unexpected token insth =
     error (Printf.sprintf "unexpected: %s in %s" (Program.Lexeme.show token) insth)
@@ -120,10 +126,24 @@ let generic_parse lexbuf =
       results
     end in
 
+  let check_predicate_conventions (s) =
+    begin
+      if String.lowercase (s) <> s
+      then warning (Printf.sprintf "predicate `%s' violates naming conventions: should be lowercase" s);
+      s
+    end in
+
+  let check_variable_conventions (s) =
+    begin
+      if String.uppercase (s) <> s
+      then warning (Printf.sprintf "variable `%s' violates naming conventions: should be uppercase" s);
+      s
+    end in
+
   let accept_name_or_temp_atom () =
     let checker other =
       match other with
-  	LName a	-> Some a
+  	LName a	-> Some (check_variable_conventions (a))
       | LAtom a	-> Some (get_temp_var_for_assignment (a))
       | _	-> None
     in try_next checker
@@ -243,7 +263,9 @@ let generic_parse lexbuf =
   and parse_predicate () : Predicate.t =
     match peek () with
       LEqual	-> begin ignore (accept (LEqual)); Primops.Sys.eq end
-    | LName n	-> if Primops.name_is_primop n then Predicate.Primop (n, Primops.resolve (expect_name ())) else Predicate.P (expect_name ())
+    | LName n	-> if Primops.name_is_primop n
+                   then Predicate.Primop (n, Primops.resolve (expect_name ()))
+                   else Predicate.P (check_predicate_conventions (expect_name ()))
     | _		-> error "Expected predicate name"
 
   and parse_base_literal () : literal =
