@@ -18,7 +18,7 @@
    Boston, MA  02111-1307
    USA
 
- The author can be reached as "reichenb" at "colorado.edu".
+ The author can be reached as "creichen" at the usual gmail domain.
 
 ***************************************************************************)
 
