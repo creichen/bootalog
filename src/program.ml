@@ -41,7 +41,7 @@ module Lexeme =
       | LOparen
       | LCparen
       | LEOF
-      | LErrortoken of int * char
+      | LErrortoken of (int * int) * char
 
     let show l =
       match l with

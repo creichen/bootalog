@@ -26,11 +26,7 @@
 open Program.Lexeme
 open Strlib
 
-let line_nr = ref 1
-let line_offset = ref 0
-
-let ret v  =
-  (!line_nr, v)
+let ret v  = v
 
 }
 
@@ -56,14 +52,12 @@ rule lex =
       | posnum as n					{ ret (LAtom n) }
       | posnum '.' posnum as n				{ ret (LAtom n) }
       | '"' (( '\\' _ | [^ '\\' '"'])* as qs) '"'	{ ret (LAtom (Strlib.dequote qs)) }
-      | [ ' ' '\t' '\r' ]+				{ lex lexbuf }
-      | "\n"						{ begin	line_nr := 1 + !line_nr; line_offset := Lexing.lexeme_start lexbuf; lex lexbuf end }
+      | [ ' ' '\t' '\r' '\n' ]+				{ lex lexbuf }
       | eof						{ ret (LEOF) }
-      | _ as s						{ ret (LErrortoken ((Lexing.lexeme_start lexbuf) - (!line_offset), s)) }
+      | _ as s						{ ret (LErrortoken ((0, 0), s)) }
 and lex_comment depth =
   parse "*)"		{ if depth = 1 then lex lexbuf else lex_comment (depth - 1) lexbuf }
       | "(*"		{ lex_comment (depth + 1) lexbuf }
-      | "\n"		{ begin	line_nr := 1 + !line_nr; line_offset := Lexing.lexeme_start lexbuf; lex_comment depth lexbuf end }
       | _		{ lex_comment depth lexbuf }
 
 {}

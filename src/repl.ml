@@ -28,7 +28,7 @@ open Getopt
 open Printf
 module DB = Database
 
-let version = "0.1.1"
+let version = "0.2.0"
 
 let boilerplate = "bootalog v" ^ version ^ "\nCopyright (C) 2012 Christoph Reichenbach\n"
   ^ "This program is Free Software under the terms of the GNU General Public Licence, v2.0 (or later)\n"

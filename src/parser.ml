@@ -22,6 +22,7 @@
 
 ***************************************************************************)
 
+open Lexing
 open Base
 open Program
 open Program.Lexeme
@@ -33,9 +34,11 @@ let gen_temp_var_name (i) =
 let default_warning_reporter = print_endline
 let warning_reporter = ref (default_warning_reporter)
 
+type pos = int * int
+
 let generic_parse lexbuf =
-  let past_tokens : lexeme list ref = ref [] in
-  let line = ref 0 in
+  let past_tokens : (pos * lexeme) list ref = ref [] in
+  let line = ref 1 in
   let offset = ref 0 in
   let get_pos () = (!line, !offset) in
   let warning msg =
@@ -46,42 +49,52 @@ let generic_parse lexbuf =
   let error_unexpected token insth =
     error (Printf.sprintf "unexpected: %s in %s" (Program.Lexeme.show token) insth)
   in
+  let set_pos (line_nr, off) =
+    begin
+      line := line_nr;
+      offset := off;
+    end in
   let lex () =
-    let off = Lexing.lexeme_start lexbuf in
-    let (line_nr, v) = Lexer.lex lexbuf
+    let off = lexbuf.lex_curr_p.pos_cnum in
+    let line_nr = lexbuf.lex_curr_p.pos_lnum in
+    let v = Lexer.lex lexbuf
     in match v with
 	LErrortoken (_, c)	-> error (Printf.sprintf "Foreign character `%c'" c)
       | _			->
 	begin
-	  line := line_nr;
-	  offset := off;
+	  set_pos (line_nr, off);
 	  v
 	end
   in
 
   let next () =
     match !past_tokens with
-	h::tl	-> begin past_tokens := tl; h end
-      | []	-> lex ()
+	(pos, h)::tl	-> begin past_tokens := tl; set_pos pos; h end
+      | []		-> lex ()
   in
-  let push_back (token) =
-    past_tokens := token :: !past_tokens
+  let push_back (pos, token) =
+    begin
+      past_tokens := (get_pos (), token) :: !past_tokens;
+      set_pos (pos)
+    end
   in
 
   let peek () =
+    let old_pos = get_pos () in
     let token = next ()
     in begin
-      push_back (token);
+      push_back (old_pos, token);
       token
     end
   in
 
   let try_next (checker) =
+    let old_pos = get_pos () in
     let next_token = next ()
     in let result = checker next_token
        in begin
 	 (match result with
-	     None	-> push_back next_token
+	     None	-> push_back (old_pos, next_token)
 	   | _		-> ());
 	 result
        end
@@ -96,12 +109,13 @@ let generic_parse lexbuf =
   in
 
   let rec accept_atom () =
+    let old_pos = get_pos () in
     let checker other =
       match other with
 	LAtom a	-> Some a
       | LMinus  -> (let sub = accept_atom ()
 		   in match sub with
-		     None	-> begin push_back LMinus; None end
+		     None	-> begin push_back (old_pos, LMinus); None end
 		   | Some a	-> Some ("-" ^ a))
       | _	-> None
     in try_next checker
@@ -205,12 +219,17 @@ let generic_parse lexbuf =
     Printf.eprintf "%s\n" s
   in
 *)
-  let assert_basic_predicate_in_literal ((head_p, _) as literal) =
+  let assert_basic_predicate_in_literal (start_pos) ((head_p, _) as literal) =
+    let error' e =
+      begin
+	set_pos (start_pos);
+	error e;
+      end in
     let result = match Primop_interface.primop_id (head_p) with
 	None		-> literal
-      | Some nid	-> error (Errors.Parser.msg_primop_in_head (Primops.get_name nid))
+      | Some nid	-> error' (Errors.Parser.msg_primop_in_head (Primops.get_name nid))
     in if Predicate.is_neg (head_p)
-      then error (Errors.Parser.msg_negative_head (Literal.show literal))
+      then error' (Errors.Parser.msg_negative_head (Literal.show literal))
       else result
   in
 
@@ -298,7 +317,8 @@ let generic_parse lexbuf =
     | other -> error_unexpected other "rule"
 
   and parse_rule () : rule =
-    parse_rule_tail (assert_basic_predicate_in_literal (parse_base_literal ()))
+    let old_pos = get_pos ()
+    in parse_rule_tail (assert_basic_predicate_in_literal (old_pos) (parse_base_literal ()))
 
   and parse_interactive_query () : rule =
     begin
