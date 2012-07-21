@@ -117,6 +117,7 @@ let all_tests = "frontend" >:::
     "parse-comment-0" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1 (* comment in the middle *)).";
     "parse-comment-1" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1) (* comment (* nested *) in the middle *).";
     "parse-db-0" >:: check_parse_d [("q", [|"1"|]); ("q", [|"2"|])] "q(1) q(2)";
+    "parse-db-1" >:: check_parse_d [("q", [|"-1"|])] "q(-1)";
   ]
 
 let _ = run_test_tt_main (all_tests)

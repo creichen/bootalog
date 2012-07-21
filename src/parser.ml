@@ -31,7 +31,7 @@ let gen_temp_var_name (i) =
   Printf.sprintf "$%d" i
 
 let generic_parse lexbuf =
-  let current_token : lexeme option ref = ref None in
+  let past_tokens : lexeme list ref = ref [] in
   let line = ref 0 in
   let offset = ref 0 in
   let error msg =
@@ -54,14 +54,12 @@ let generic_parse lexbuf =
   in
 
   let next () =
-    match !current_token with
-	Some t	-> begin current_token := None; t end
-      | None	-> lex ()
+    match !past_tokens with
+	h::tl	-> begin past_tokens := tl; h end
+      | []	-> lex ()
   in
   let push_back (token) =
-    match !current_token with
-	None	-> current_token := Some token
-      | _	-> error "Internal error: push_back on non-empty slot"
+    past_tokens := token :: !past_tokens
   in
 
   let peek () =
@@ -91,11 +89,14 @@ let generic_parse lexbuf =
       | None	-> false
   in
 
-  let accept_atom () =
+  let rec accept_atom () =
     let checker other =
       match other with
 	LAtom a	-> Some a
-      (* FIXME: LMinus *)
+      | LMinus  -> (let sub = accept_atom ()
+		   in match sub with
+		     None	-> begin push_back LMinus; None end
+		   | Some a	-> Some ("-" ^ a))
       | _	-> None
     in try_next checker
   in
