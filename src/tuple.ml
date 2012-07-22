@@ -22,7 +22,7 @@
 
 ***************************************************************************)
 
-type t = Atom.t array
+type t = (* Label.t array * *)  Atom.t array (* of equal length *)
 let show elts = "(" ^ (String.concat ", " (List.map Atom.show (Array.to_list elts))) ^ ")"
 let sort = List.sort (Compare.array_collate (String.compare))
 

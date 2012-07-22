@@ -24,7 +24,7 @@
 
 module VarSet = Var_set
 
-type t = Predicate.t * (Variable.t array)
+type t = Predicate.t * ((*Label.t array * *) Variable.t array)
 
 let delta (p, body) =
   (Predicate.delta p, body)

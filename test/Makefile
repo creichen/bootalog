@@ -10,8 +10,9 @@ OCAMLOPTFLAGS=$(INCLUDES) ${PACKAGES}
 CMX_DEPS=../src/strlib.cmx ../src/getopt.cmx ../src/compare.cmx ../src/option.cmx \
 	../src/dynamic_programming.cmx \
 	../src/variable.cmx \
-	../src/var_set.cmx \
 	../src/atom.cmx \
+	../src/label.cmx \
+	../src/var_set.cmx \
 	../src/tuple.cmx \
 	../src/predicate.cmx \
 	../src/predicate_set.cmx \
@@ -35,7 +36,7 @@ CMX_DEPS=../src/strlib.cmx ../src/getopt.cmx ../src/compare.cmx ../src/option.cm
 CMX_HELPERS=stratum_test_helper.cmx error_test_helper.cmx
 TESTS=test_getopt.test test_table.test test_eval.test test_stratification.test \
 	test_strlib.test test_frontend.test test_dynamic_programming.test \
-	test_access_modes.test test_primops.test
+	test_access_modes.test test_primops.test test_labels.test
 
 .PHONY: all clean depend test prepare-test
 

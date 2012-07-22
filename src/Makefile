@@ -27,8 +27,9 @@ BINARY=bootalog
 DATALOG_OBJS=strlib.cmx getopt.cmx compare.cmx option.cmx \
 	dynamic_programming.cmx \
 	variable.cmx \
-	var_set.cmx \
 	atom.cmx \
+	label.cmx \
+	var_set.cmx \
 	tuple.cmx \
 	predicate.cmx \
 	predicate_set.cmx \
