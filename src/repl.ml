@@ -26,9 +26,9 @@ open Base
 open Eval
 open Getopt
 open Printf
-module DB = Database
+include Frontend
 
-let version = "0.2.0"
+let version = "0.2.1"
 
 let boilerplate = "bootalog v" ^ version ^ "\nCopyright (C) 2012 Christoph Reichenbach\n"
   ^ "This program is Free Software under the terms of the GNU General Public Licence, v2.0 (or later)\n"
@@ -72,8 +72,8 @@ let print_version () =
     exit 0
   end
 
-let db = Frontend.DBFrontend.create ()
-let ruleset = ref []
+let db = DBFrontend.create ()
+let program = ProgramFrontend.create ()
 let running = ref true
 
 let rec pad n =
@@ -118,11 +118,10 @@ let cmd_rules _ =
       Printf.printf " (* %-4d *)\t%s\n" (!count) (Rule.show rule);
       count := !count + 1
     end
-  in List.iter pr_rule (List.rev !ruleset)
+  in List.iter pr_rule (ProgramFrontend.rules program)
 
 let cmd_eval _ =
-  let strata = Stratification.stratify (!ruleset)
-  in Eval.eval db strata
+  ProgramFrontend.eval (program) (db)
 
 let cmd_eval_and_dump _ =
   begin
@@ -215,16 +214,16 @@ let from_file filename parse_function =
    is out of scope for bootalog (and instead intended in scope for whatever
    datalog system we use bootalog to construct). *)
 let load_text_data filename =
-  List.iter (Frontend.DBFrontend.add db) (from_file filename Parser.parse_text_database)
+  List.iter (DBFrontend.add db) (from_file filename Parser.parse_text_database)
 
 (* Manifests the parsed rules first.  Not suited for huge programs. *)
 let load_rules filename =
-  ruleset := (List.map Rule.normalise (from_file filename Parser.parse_program)) @ !ruleset
+  ProgramFrontend.import (program) (from_file filename Parser.parse_program)
 
 let run_query (rule) =
-  let strata = Stratification.stratify (Rule.normalise rule :: !ruleset)
-  in begin
-    Eval.eval db strata;
+  begin
+    ProgramFrontend.eval (program) (db);
+    ProgramFrontend.eval (ProgramFrontend.singleton (rule)) (db);
     dump_table (Predicate.query) (DB.get_table db Predicate.query);
     DB.remove_table db (Predicate.query)
   end
@@ -242,9 +241,9 @@ let process_command (string) =
 
 let process_interactive (declaration) =
   match declaration with
-      Program.DRule rule	-> ruleset := Rule.normalise rule :: !ruleset
-    | Program.DAddFact fact	-> Frontend.DBFrontend.add db fact
-    | Program.DDelFact fact	-> Frontend.DBFrontend.remove db fact
+      Program.DRule rule	-> ProgramFrontend.add (program) (rule)
+    | Program.DAddFact fact	-> DBFrontend.add db fact
+    | Program.DDelFact fact	-> DBFrontend.remove db fact
     | Program.DQuery rule	-> run_query (rule)
 
 let repl () =

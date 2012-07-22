@@ -28,3 +28,8 @@ let value_of x =
   match x with
     None	-> raise Option
   | Some x'	-> x'
+
+let is_some x =
+  match x with
+    None	-> false
+  | _		-> true

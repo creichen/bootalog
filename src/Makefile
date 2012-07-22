@@ -46,8 +46,9 @@ DATALOG_OBJS=strlib.cmx getopt.cmx compare.cmx option.cmx \
 	rule.cmx \
 	stratification.cmx \
 	simple_table.cmx combined_table.cmx database.cmx \
+	program.cmx lexer.cmx parser.cmx \
 	eval.cmx \
-	program.cmx lexer.cmx parser.cmx frontend.cmx \
+	frontend.cmx \
 	repl.cmx
 
 bootalog: $(DATALOG_OBJS)

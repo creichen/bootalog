@@ -52,18 +52,19 @@ Bootalog takes basic Datalog and adds the following extensions:
  - primitive operators
  Version 0.2:
  - stratified negation
+ - naming convention violation warnings
  Version 0.3:
- - higher-order predicates
- Version 0.4:
  - nominal parameters
- - modules
- Version 0.5:
+ Version 0.4:
  - wildcards
  - events
- Version 0.6:
+ Version 0.5:
  - aggregation
- Version 0.7:
+ Version 0.6:
  - physical realisation of tables
+ Version 0.7:
+ - higher-order predicates
+ - modules
 
 Basic Datalog
 -------------
@@ -167,7 +168,102 @@ execution models, but it is not clear if those will be necessary for
 Bootalog.)
 
 
-higher-order predicates (v0.3)
+Nominal parameters (v0.3)
+-------------------------
+  Beginning with this version, positional parameters are complemented
+by nominal parameters.  Each predicate's parameter has a label
+attached to it, which may be a number (for positional parameters) or a
+name (for nominal parameters).  When passing in parameters, positional
+parameters must come first.  Argument lists now have the following
+format:
+
+  <arglist> ::= '(' <args-list> ')'
+  <args-list> ::= (* empty *)
+                | <arg>//","
+                | <named-arg>//","
+                | <arg>//"," "," <named-arg>//","
+
+  <named-arg> ::= <LABEL> ":" <arg>
+
+  <arg> ::= <VAR> | <ATOM>
+
+  Labels are (lowercase, by convention) strings, following the same
+naming conventions as predicates.  We permit implicit labelling
+through the following short form:
+
+  <named-arg> ::= ":" <VAR>
+
+  which obtains the implicit label that is the lowercased 
+variable name.
+
+
+Wildcards (v0.4)
+----------------
+  We allow the character "_" to be used to denote a `fresh name' for
+variable binding purposes, as in:
+
+  not-the-smallest-number(not-min: X) :-
+          less-than(_, X).  (* something is smaller *)
+
+
+Events (v0.4)
+-------------
+  An event is a "linear" fact (predicate and tuple of objects) that
+injects itself into every module that references a module that it
+lives in.  In any module, if the event encounters at least one rule
+that "consumes" the fact, it triggers all relevant rules and ceases
+its traversal.
+
+  We mark events by preceding them with an asterisk ("*").  For
+example, the following triggers an *inconsistent-switch(X) event:
+
+  *inconsistent-switch(X) :- enabled(switch:X), disabled(switch:X).
+
+  Such rules may generate multiple events, but each event is generated
+only once (and triggers only one consumption).  To trigger the same
+event multiple times, multiple copies of the same rule must be used.
+
+  Events reside in a separate namespace.
+
+
+Aggregation (v0.5)
+------------------
+  Aggregation is unordered reduction of all possible bindings to
+variables that match the body of a rule.  Syntactically, aggregations
+occur in the tail and are bracketed by "<" and ">", as in the
+following:
+
+  p(sum:Z) :- p(X), <sys.sum; SUM:Z; Z:0>(X; Z; sum:SUM)
+
+sums up all values.  To count, do the following:
+
+  p(count:Z) :- p(X), <sys.sum; SUM:Z; Z:0>(1; Z; sum:SUM)
+
+  Starting with version 0.7, the above is equivalent to
+sys.aggregate((aggregator:sys.sum; SUM:Z; Z:0;
+               aggregation(SUM:SUM) :- l(1; Z; sum:SUM));
+	      aggregations:(SUM))
+
+
+Physical realisation of tables (v0.6)
+-------------------------------------
+To manifest a database represented by predicate r, ensure that it is
+in a relation
+
+  sys.edb(r, FILE, sys.db)
+
+or
+
+  sys.edb(r, FILE, sys.text-db)
+
+where FILE is a suitable file object (cf. the System library).  Before
+revision 0.7, r will be the string name of the relation.  Starting
+with 0.7, r is the relation itself (as relation parameter.)  At that
+point, uses of sys.edb are stratified, so they may not depend on r.
+Otherwise an error will be issued and the program will be rejected.
+
+
+Higher-order predicates (v0.7)
 ------------------------------
   Predicates may be used as literals, e.g.
 
@@ -189,7 +285,7 @@ execution models, but it is not clear if those will be necessary for
 Bootalog.)
 
 
-Modules (v0.4)
+Modules (v0.7)
 --------------
   In this version, we extend the notion of objects further to include
 modules.
@@ -226,108 +322,10 @@ modules.
 
 
   We use lexical scoping.
-
-
-Nominal parameters (v0.4)
--------------------------
-  Beginning with this version, positional parameters are replaced by
-nominal parameters as per the syntax above, with a few exceptions.
-For example, we now write
-
-  ancestor(A; descendant: D) :- ancestor(A; descendant:P),
-                                 parent(P; child:D);
-
-which is short for
-
-  ancestor(ancestor: A; descendant: D) :-
-       ancestor(ancestor: A; descendant: P),
-       parent(parent: P; child: D);
-
-  Specifically, positional parameters obtain the following implicit
-names:
-  (a) if there is only one positional parameter, it obtains the prefix
-      name.
-  (b) if there are k positional parameters, they obtain the name
-      obtained from concatenating the prefix name with the string
-      representation of their relative ordering within the sequence of
-      positional parameters, starting at 0.  For example,
-
-        p(a:V, W, b:X, Y, c:Z)
-
-      expands to
-
-        p(a:V, p0:W, b:X, p1:Y, c:Z)
-
-  (c) the prefix name is defined as follows:
-      Let <pos-literal> ::= <object> <module>, where
-      <module> contains the positional parameters.
-      If <object> = <name>, then the prefix name is <name>.
-      If <object> = <object> "." <name>, then the prefix name is again
-      <name>.
-
-  Implicit positional parameters are only provided on the right-hand
-side of rules, and only as a short hand for input.
-
-
-Wildcards (v0.5)
-----------------
-  We allow the character "_" to be used to denote a `fresh name' for
-variable binding purposes, as in:
-
-  not-the-smallest-number(not-min: X) :-
-          less-than(_, X).  (* something is smaller *)
-
-
-Events (v0.5)
--------------
-  An event is a "linear" fact (predicate and tuple of objects) that
-injects itself into every module that references a module that it
-lives in.  In any module, if the event encounters at least one rule
-that "consumes" the fact, it triggers all relevant rules and ceases
-its traversal.
-
-  We mark events by preceding them with an asterisk ("*").  For
-example, the following triggers an *inconsistent-switch(X) event:
-
-  *inconsistent-switch(X) :- enabled(switch:X), disabled(switch:X).
-
-  Such rules may generate multiple events, but each event is generated
-only once (and triggers only one consumption).  To trigger the same
-event multiple times, multiple copies of the same rule must be used.
-
-  Events reside in a separate namespace.
-
-
-Aggregation (v0.6)
-------------------
-  Aggregation is unordered reduction of all possible bindings to
-variables that match the body of a rule.  Syntactically, aggregations
-occur in the tail and are bracketed by "<" and ">", as in the
-following:
-
-  p(sum:Z) :- p(X), <sys.sum>(X; <Z:0>; Z);
-
-sums up all values.  To count, do the following:
-
-  p(count:Z) :- p(X), <sys.sum>(1; <Z:0>; sum:Z);
-
-
-
-Physical realisation of tables (v0.7)
--------------------------------------
-To manifest a database represented by predicate r, ensure that it is
-in a relation
-
-  sys.edb(r, FILE, sys.db)
-
-or
-
-  sys.edb(r, FILE, sys.text-db)
-
-where FILE is a suitable file object (cf. the System library).
-Uses of this relation are stratified, so they may not depend on r.
-Otherwise an error will be issued and the program will be rejected.
-
+  Since modules correspond to parameter sequences now, they may have
+positional parameters.  Such parameters are manifest in the relations
+`index(pos:, element:)' with positions starting at 0, and `length(X)',
+where `length(X)' is the number of elements (i.e., (maximum pos) + 1).
 
 
 System library

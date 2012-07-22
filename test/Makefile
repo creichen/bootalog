@@ -29,8 +29,9 @@ CMX_DEPS=../src/strlib.cmx ../src/getopt.cmx ../src/compare.cmx ../src/option.cm
 	../src/rule.cmx \
 	../src/stratification.cmx \
 	../src/simple_table.cmx ../src/combined_table.cmx ../src/database.cmx \
-	../src/program.cmx ../src/lexer.cmx ../src/frontend.cmx ../src/parser.cmx \
-	../src/eval.cmx
+	../src/program.cmx ../src/lexer.cmx  ../src/parser.cmx \
+	../src/eval.cmx \
+	../src/frontend.cmx
 CMX_HELPERS=stratum_test_helper.cmx error_test_helper.cmx
 TESTS=test_getopt.test test_table.test test_eval.test test_stratification.test \
 	test_strlib.test test_frontend.test test_dynamic_programming.test \

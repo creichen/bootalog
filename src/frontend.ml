@@ -46,3 +46,53 @@ struct
   let import db (facts : fact list) =
     List.iter (add db) facts
 end
+
+
+module ProgramFrontend =
+struct
+  type t = {
+    mutable rules : Rule.t list;
+    mutable stratified_program : stratum list option;
+  }
+
+  let create () = {
+    rules = [];
+    stratified_program = None;
+  }
+
+  (* Performs semantic analysis of a rule wrt a program, as well as access path selection *)
+  let semantic_check (_program) (rule) =
+    let rule = Rule.normalise (rule)
+    in rule
+
+  let add (program : t) (rule : Rule.t) =
+    begin
+      program.rules <- (semantic_check (program) (rule)) :: program.rules;
+      program.stratified_program <- None;  (* insertion may have invalidated stratification *)
+    end
+
+  let import (program) (rules) =
+    List.iter (add program) rules
+
+  let singleton (rule) =
+    let program = create()
+    in begin
+      add (program) rule;
+      program
+    end
+
+  let rules (program) = List.rev (program.rules)
+
+  let stratify (program : t) =
+    begin
+      if not (Option.is_some program.stratified_program)
+      then program.stratified_program <- Some (Stratification.stratify (program.rules))
+    end
+
+  let eval (program : t) (db) =
+    begin
+      stratify (program);
+      Eval.eval (db) (Option.value_of (program.stratified_program));
+    end
+
+end
