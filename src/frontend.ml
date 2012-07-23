@@ -32,11 +32,11 @@ struct
     DB.create (Combined_table.create)
 
   (* EDB insertion *)
-  let add db ((predicate, tuple) : fact) =
-    let insert pred tuple = Combined_table.insert (DB.get_table db pred) tuple
+  let add db ((predicate, ((_, atoms) as tuple)) : fact) =
+    let insert pred (tuple) = Combined_table.insert (DB.get_table db pred) tuple
     in begin
       insert (Predicate.P predicate) tuple;
-      Array.iter (function v -> insert Predicate.atom [|v|]) tuple
+      Array.iter (function v -> insert Predicate.atom ([|Label.none|], [|v|])) atoms
     end
 
   (* EDB removal *)

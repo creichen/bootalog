@@ -38,13 +38,13 @@ let body_predicates (_, body) =  List.fold_left (fun map -> fun (p, _) -> Predic
 let body_neg_predicates (_, body) =  List.fold_left (fun map -> fun (p, _) -> if Predicate.is_neg (p) then PredicateSet.add ((*Predicate.non_negative*) p) map else map) PredicateSet.empty body
 let body_nonnegativised_predicates (_, body) =  List.fold_left (fun map -> fun (p, _) -> PredicateSet.add (Predicate.non_negative p) map) PredicateSet.empty body
 let head_vars (head, _) = BaseLiteral.vars (head)
-let body_vars (_, body) = List.fold_left (fun map -> fun (_, vars) -> Array.fold_left VarSet.add' map vars) VarSet.empty body
+let body_vars (_, body) = List.fold_left (fun map -> fun (_, (_, vars)) -> Array.fold_left VarSet.add' map vars) VarSet.empty body
 
 let add_atoms ((head, tail) as rule : t) =
   let head_vars = head_vars (rule) in
   let body_vars = body_vars (rule) in
   let free_vars = VarSet.union head_vars body_vars in
-  let add_atom_predicate var tail = (Predicate.atom, [| var |]) :: tail in
+  let add_atom_predicate var tail = (Predicate.atom, ([|Label.none|], [| var |])) :: tail in
   let atoms = VarSet.fold add_atom_predicate free_vars [] in
   (head, atoms @ tail)
 

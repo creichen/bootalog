@@ -26,7 +26,7 @@ open Base
 include Base_literal
 module PrimopInterface = Primop_interface
 
-let variable_modes (vars_before : VarSet.t) (free_mode) ((_, body) : t) =
+let variable_modes (vars_before : VarSet.t) (free_mode) ((_, (_, body)) : t) =
   let variable_mode (var) =
     if VarSet.contains vars_before var
     then PrimopInterface.Bound

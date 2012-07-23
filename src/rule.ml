@@ -29,11 +29,11 @@ module AccessPath = Access_path
 let normalise (rule) =
   (* We perform access path selection under the assumption that `atom' access to a bound variable is very cheap. *)
   let (head, tail_selected) = AccessPath.select (add_atoms (rule)) in
-  (* We realise this by filtering out all accesses to bound atoms. *)
+  (* We realise this by filtering out all atom-ness checks to bound atoms. *)
   let rec filter_accesses bound_vars t =
     match t with
       []				-> []
-    | ((p, args) as literal)::tl	->
+    | ((p, (_, args)) as literal)::tl	->
       if p = Predicate.atom && VarSet.contains bound_vars (Array.get args 0)
       then filter_accesses bound_vars tl	(* skip: variable is already bound *)
       else literal::(filter_accesses (VarSet.union (bound_vars) (BaseLiteral.vars literal)) tl)

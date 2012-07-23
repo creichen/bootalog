@@ -24,17 +24,20 @@
 
 module VarSet = Var_set
 
-type t = Predicate.t * ((*Label.t array * *) Variable.t array)
+type body_t = (Label.t array * Variable.t array)
+type t = Predicate.t * body_t
 
 let delta (p, body) =
   (Predicate.delta p, body)
 
-let show (symbol, varlist) =
-  Predicate.show(symbol) ^ "(" ^ (String.concat ", " (List.map Variable.show (Array.to_list varlist))) ^ ")"
-let compare = Compare.join (Predicate.compare) (Compare.array_collate Variable.compare)
+let show (symbol, (labels, vars)) =
+  let showi (index : int) (var : Variable.t) = Label.show_var (Array.get labels index) (var)
+  in  (Predicate.show (symbol)) ^ "(" ^ (String.concat ", " (Array.to_list (Array.mapi showi vars))) ^ ")"
+
+let compare = Compare.join (Predicate.compare) (Compare.join (Compare.array_collate Label.compare) (Compare.array_collate Variable.compare))
 
 let neg (p, body) = (Predicate.neg p, body)
 
 let is_neg (p, _) = Predicate.is_neg (p)
 
-let vars (_, vars) = VarSet.of_array (vars)
+let vars (_, (_, vars)) = VarSet.of_array (vars)

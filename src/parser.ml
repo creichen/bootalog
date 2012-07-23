@@ -127,7 +127,7 @@ let generic_parse lexbuf =
     let var = !temp_var_counter in
     let var_name = gen_temp_var_name (var)
     in begin
-      temp_body := (Predicate.Assign atom, [| var_name |]) :: !temp_body;
+      temp_body := (Predicate.Assign atom, ([| None |], [| var_name |])) :: !temp_body;
       temp_var_counter := var + 1;
       var_name
     end in
@@ -265,7 +265,7 @@ let generic_parse lexbuf =
     begin
       expect LOparen;
       let result = parse_list LComma (accept_atom) "atom" (function () -> accept LCparen)
-      in Array.of_list result
+      in (* labels: FIXME *) Tuple.positional (Array.of_list result)
     end
 
   and parse_fact () : fact =
@@ -276,7 +276,7 @@ let generic_parse lexbuf =
     begin
       expect LOparen;
       let body = parse_list LComma (accept_name_or_temp_atom) "name" (function () -> accept LCparen)
-      in (pred, Array.of_list body)
+      in (pred, (* labels: FIXME *) Tuple.positional (Array.of_list body))
     end
 
   and parse_predicate () : Predicate.t =

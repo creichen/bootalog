@@ -22,6 +22,6 @@
 
 ***************************************************************************)
 
-type t = Predicate.base_t * (Atom.t array)
+type t = Predicate.base_t * Tuple.t
 
 let show (bp, tuple) = bp ^ (Tuple.show (tuple))

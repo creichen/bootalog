@@ -33,3 +33,8 @@ let is_some x =
   match x with
     None	-> false
   | _		-> true
+
+let map f x =
+  match x with
+    None	-> None
+  | Some v	-> Some (f v)

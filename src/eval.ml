@@ -30,20 +30,20 @@ type env = Env.t
 module Table = Combined_table
 type table = Table.t
 
-let const_empty_array = [||]
+let const_empty_array_pair = ([||],[||])
 
-let eval_rule (pred_lookup : predicate -> table) ((head_p, head_vars), tail) =
+let eval_rule (pred_lookup : predicate -> table) ((head_p, (head_labels, head_vars)), tail) =
   let bind_final (env) =
     let atoms = Array.map (Env.find env) head_vars
-    in Table.insert (pred_lookup head_p) atoms
+    in Table.insert (pred_lookup head_p) (head_labels, atoms)
   in
   let rec bind_next (list : literal list) (env : env) =
     match list with
       []						-> bind_final env
     | (((Predicate.P _) as p,body)::tl
 	  | ((Predicate.Delta _) as p, body)::tl)	-> Table.bind_all (pred_lookup p) body env (bind_next tl)
-    | (Predicate.Linked (_, _, evaluator), body)::tl	-> evaluator body env (bind_next tl)
-    | (Predicate.Assign atom, body)::tl			-> let () = Env.bind env (Array.get body 0) atom
+    | (Predicate.Linked (_, _, evaluator),(_,body))::tl	-> evaluator body env (bind_next tl)
+    | (Predicate.Assign atom, (_, body))::tl		-> let () = Env.bind env (Array.get body 0) atom
 							   in bind_next tl env
     | (Predicate.Primop _, _)::_			-> failwith "Encountered unlinked Primop during rule evaluation"
     | (Predicate.Neg negpred, body)::tl			-> let failure = ref false in
@@ -52,7 +52,7 @@ let eval_rule (pred_lookup : predicate -> table) ((head_p, head_vars), tail) =
 							     bind_next
 							       [(negpred, body);
 								  (* Introduce fake primop for the sole reason of failing *)
-								(Predicate.Linked ("FAIL", 0, failing_evaluator), const_empty_array)]
+								(Predicate.Linked ("FAIL", 0, failing_evaluator), const_empty_array_pair)]
 							       (env);
 							     if not !failure
 							     then bind_next tl env

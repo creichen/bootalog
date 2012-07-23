@@ -40,20 +40,35 @@ let show table =
   in "{" ^  String.concat ", " (body_list) ^ "}"
 
 let show_tabular table =
-  let extract_sizes tuple _ best_sizes = Tuple.merge_string_sizes (Tuple.string_sizes tuple) best_sizes in
+  let a_tuple = ref None in
+  let () =
+    let get_a_tuple tuple _ () =
+      begin
+	a_tuple := Some (tuple);
+	raise Not_found
+      end
+    in try
+	 Hashtbl.fold get_a_tuple table ()
+      with Not_found -> ()
+  in let a_tuple = Option.value_of (!a_tuple) in
+  let extract_sizes tuple _ best_sizes = Tuple.Show.merge_string_sizes (Tuple.Show.string_sizes tuple) best_sizes in
   let sizes = Hashtbl.fold extract_sizes table [] in
+  let sizes = Tuple.Show.merge_string_sizes (Tuple.Show.label_sizes (a_tuple)) (sizes) in
   let sizes_up = List.map (function a -> a + 2) sizes in
-  let extract tuple _ body = ("  " ^ (Tuple.show_padded sizes_up tuple) ^ "\n") :: body
+  let extract tuple _ body = ("  " ^ (Tuple.Show.show_padded_tuple sizes_up tuple) ^ "\n") :: body
   in
   let body_list : string list = Hashtbl.fold (extract) table [] in
-  let body_list = List.sort String.compare body_list
-  in String.concat "" (body_list)
+  let body_list = List.sort String.compare body_list in
+  let header = (Tuple.Show.show_padded_labels sizes_up a_tuple)
+  in   ("  " ^ header ^ "\n")
+     ^ ("  " ^ (String.make (String.length header) '-') ^ "\n")
+     ^ String.concat "" (body_list)
 
 type bind_action =
     Bind
   | Check
 
-let bind_all table variables env (continuation) =
+let bind_all table (labels, variables : Literal.body_t) env (continuation) =
   let size = Array.length variables in
   let actions = Array.create size Check in
   let bound_vars = ref VarSet.empty in
@@ -76,12 +91,12 @@ let bind_all table variables env (continuation) =
   let finish () = continuation env in
   if !check_only
   then
-    if contains table values
+    if contains table (labels, values)
     then finish ()
     else ()
   else (* must iterate *)
       begin
-	let try_tuple tuple () =
+	let try_tuple (_, tuple) () =
 	  let rec bind_at i =
 	    if i >= size
 	    then finish ()

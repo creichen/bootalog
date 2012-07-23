@@ -73,9 +73,6 @@ let remove table (tuple: tuple) : unit =
       SimpleT t		-> Simple_table.remove t tuple
     | DeltaT _		-> raise (Failure "Attempted to remove entry from delta table!")
 
-let insert' table (tuple) : unit =
-  insert table (Array.of_list tuple)
-
-let bind_all table (variables : variable array) (env : env) (continuation : env -> unit) : unit =
+let bind_all table (variables : Literal.body_t) (env : env) (continuation : env -> unit) : unit =
   match table with
       (SimpleT t | DeltaT (_, _, t)) -> Simple_table.bind_all t variables env continuation

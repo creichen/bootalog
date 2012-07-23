@@ -39,6 +39,8 @@ let check_eq (show) (actual) (expected) =
 let show_int i = Printf.sprintf "%d" i
 
 
+let positional (p, args) = (p, (Array.map (function _ -> Label.none) args, args))
+
 module AccessMode =
   struct
     open PI
@@ -179,7 +181,7 @@ module Link =
       | _			-> check_eq_s 1 (show_link_result actual) 0 (show_link_result expected) (* always fail *)
 
     let test (varlist) (literal) (expected_result) () =
-      check_link_result (link (VarSet.of_list varlist) (literal)) (expected_result)
+      check_link_result (link (VarSet.of_list varlist) (positional literal)) (Option.map (function (a, b) -> (positional a, b)) expected_result)
 
     let dummy_fn _ _ _ = ()
     let eval_dummy_fn = AccessMode.dummy_fn
@@ -202,7 +204,7 @@ module Expensive =
     open Literal
 
     let check_cost vars literal expected_cost =
-      check_eq PI.show_cost (estimate_access_cost (VarSet.of_list vars) literal) expected_cost
+      check_eq PI.show_cost (estimate_access_cost (VarSet.of_list vars) (positional literal)) expected_cost
 
     let test_p_check () =
       check_cost ["X"; "Y"] (P "a", [|"X"; "Y"|]) (PI.cost Literal.predicate_element_check_cost)
@@ -234,23 +236,23 @@ module Expensive =
 
 module APath =
   struct
-    let atom arg = (Predicate.atom, [|arg|])
-    let p arg = (Predicate.P "p", [|arg|])
-    let q (x, y) = (Predicate.P "q", [|x; y|])
-    let r (x, y) = (Predicate.P "r", [|x; y|])
-    let delta_r (x, y) = (Predicate.Delta "r", [|x; y|])
-    let eq (x, y) = (Primops.Sys.eq, [|x; y|])
-    let add (x, y, z) = (Primops.Sys.add, [|x; y; z|])
-    let concat (x, y, z) = (Primops.Sys.concat, [|x; y; z|])
-    let leq modestr (x, y) = (Predicate.Linked ("=["^modestr^"]", value_of (PI.primop_id Primops.Sys.eq), function _ -> function _ -> function _ -> ()),
+    let atom arg = positional (Predicate.atom, [|arg|])
+    let p arg = positional (Predicate.P "p", [|arg|])
+    let q (x, y) = positional (Predicate.P "q", [|x; y|])
+    let r (x, y) = positional (Predicate.P "r", [|x; y|])
+    let delta_r (x, y) = positional (Predicate.Delta "r", [|x; y|])
+    let eq (x, y) = positional (Primops.Sys.eq, [|x; y|])
+    let add (x, y, z) = positional (Primops.Sys.add, [|x; y; z|])
+    let concat (x, y, z) = positional (Primops.Sys.concat, [|x; y; z|])
+    let leq modestr (x, y) = positional (Predicate.Linked ("=["^modestr^"]", value_of (PI.primop_id Primops.Sys.eq), function _ -> function _ -> function _ -> ()),
 			      [|x; y|])
-    let ladd modestr (x, y, z) =
+    let ladd modestr (x, y, z) = positional
       (Predicate.Linked ("sys-add["^modestr^"]", value_of (PI.primop_id Primops.Sys.add), function _ -> function _ -> function _ -> ()),
        [|x; y; z|])
-    let lconcat modestr (x, y, z) =
+    let lconcat modestr (x, y, z) = positional
       (Predicate.Linked ("sys-concat["^modestr^"]", value_of (PI.primop_id Primops.Sys.concat), function _ -> function _ -> function _ -> ()),
        [|x; y; z|])
-    let assign (var, atom) = (Predicate.Assign atom, [|var|])
+    let assign (var, atom) = positional (Predicate.Assign atom, [|var|])
 
     let show_tail tail =
       "[" ^ (String.concat ", " (List.map Literal.show tail)) ^ "]"

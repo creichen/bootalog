@@ -24,6 +24,8 @@
 
 type t = string option
 
+let none : t = None
+
 (* debugging only *)
 let show s =
   match s with
@@ -34,6 +36,11 @@ let show_atom label atom =
   match label with
     None	-> atom
   | Some l	-> l ^ ": " ^ (Atom.show atom)
+
+let show_var label var =
+  match label with
+    None	-> var
+  | Some l	-> l ^ ": " ^ (Variable.show var)
 
 let compare lhs rhs =
   match (lhs, rhs) with
@@ -56,3 +63,4 @@ let order_labels (values : 'a array) (labels : t array) =
     Array.stable_sort (compare_labels) (zipped);
     Array.iteri export (zipped);
   end
+

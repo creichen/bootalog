@@ -22,26 +22,48 @@
 
 ***************************************************************************)
 
-type t = (* Label.t array * *)  Atom.t array (* of equal length *)
-let show elts = "(" ^ (String.concat ", " (List.map Atom.show (Array.to_list elts))) ^ ")"
-let sort = List.sort (Compare.array_collate (String.compare))
+type t = Label.t array * Atom.t array (* of equal length *)
+let show (labels, elts) =
+  let showi (index : int) (atom : Atom.t) = Label.show_atom (Array.get labels index) (atom)
+  in  "(" ^ (String.concat ", " (Array.to_list (Array.mapi showi elts))) ^ ")"
 
-let string_sizes (tuple) =
-  List.map (function t -> (String.length (Atom.show t))) (Array.to_list tuple)
+(* In practice, the labels should be invariant over all tuples we're trying to sort, but
+ * we try to be general below. *)
+let sort = List.sort (Compare.join (Compare.array_collate Label.compare) (Compare.array_collate String.compare))
 
-let show_padded sizes tuple =
-  let rec s a b =
-    match (a, b) with
-      (size::sl, atom::al)	-> (Printf.sprintf "%-*s" size (Atom.show atom)) :: (s sl al)
-    | (_, [])			-> []
-    | ([], atom::al)		-> (Atom.show atom) :: (s [] al)
-  in String.concat "" (s sizes (Array.to_list tuple))
 
-let merge_string_sizes sizes0 sizes1 =
-  let rec m a b =
-    match (a, b) with
-      ([], tl)	-> tl
-    | (tl, [])	-> tl
-    | (h1::tl1,
-       h2::tl2)	-> (if h1 > h2 then h1 else h2)::(m tl1 tl2)
-  in m sizes0 sizes1
+module Show =
+struct
+  (* This module assumes that all tuples have the same labels. *)
+
+  let string_sizes (_, tuple) =
+    List.map (function t -> (String.length (Atom.show t))) (Array.to_list tuple)
+
+  let label_sizes (tuple, _) =
+    List.map (function t -> (String.length (Label.show t))) (Array.to_list tuple)
+
+  let show_padded show sizes array =
+    let rec s a b =
+      match (a, b) with
+	(size::sl, elt::al)	-> (Printf.sprintf "%-*s" size (show elt)) :: (s sl al)
+      | (_, [])			-> []
+      | ([], elt::al)		-> (show elt) :: (s [] al)
+    in String.concat "" (s sizes (Array.to_list array))
+
+  let show_padded_labels sizes (labels, _) =
+    show_padded Label.show sizes labels
+
+  let show_padded_tuple sizes (_, tuple) =
+    show_padded Atom.show sizes tuple
+
+  let merge_string_sizes sizes0 sizes1 =
+    let rec m a b =
+      match (a, b) with
+	([], tl)	-> tl
+      | (tl, [])	-> tl
+      | (h1::tl1,
+	 h2::tl2)	-> (if h1 > h2 then h1 else h2)::(m tl1 tl2)
+    in m sizes0 sizes1
+end
+
+let positional (array) = (Array.map (function _ -> Label.none) array, array)

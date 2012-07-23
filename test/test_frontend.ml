@@ -57,28 +57,28 @@ let check_eq msg expected actual =
 
 
 let p(x, y) =
-  (Predicate.P "p", [|x; y|])
+  (Predicate.P "p", Tuple.positional [|x; y|])
 
 let query(x, y) =
-  (Predicate.query, [|x; y|])
+  (Predicate.query, Tuple.positional [|x; y|])
 
 let q(x) =
-  (Predicate.P "q", [|x|])
+  (Predicate.P "q", Tuple.positional [|x|])
 
 let q2(x, y) =
-  (Predicate.P "q", [|x; y|])
+  (Predicate.P "q", Tuple.positional [|x; y|])
 
 let atom(x) =
-  (Predicate.P "atom", [|x|])
+  (Predicate.P "atom", Tuple.positional [|x|])
 
 let tmpvar(x) =
   Parser.gen_temp_var_name (x)
 
 let r() =
-  (Predicate.P "r", [||])
+  (Predicate.P "r", Tuple.positional [||])
 
 let assign(var, value) =
-  (Predicate.Assign value, [|tmpvar (var)|])
+  (Predicate.Assign value, Tuple.positional [|tmpvar (var)|])
 
 let check_with_warnings (expected_warnings) (check) () =
   let warnings_list = ref [] in
@@ -111,16 +111,16 @@ let all_tests = "frontend" >:::
     "parse-p-4" >:: check_parse_p [(q("X"), [q("X")])] "q(X) :- q(X).";
     "parse-warn-pred-0" >:: check_with_warnings
                              ["L1 7: predicate `BADNAME' violates naming conventions: should be lowercase"]
-                             (check_parse_p [(q("X"), [(Predicate.P "BADNAME", [|"X"|])])] "q(X) :- BADNAME(X).");
+                             (check_parse_p [(q("X"), [(Predicate.P "BADNAME", Tuple.positional [|"X"|])])] "q(X) :- BADNAME(X).");
     "parse-warn-pred-1" >:: check_with_warnings
                              ["L1 0: predicate `BADNAME' violates naming conventions: should be lowercase"]
-                             (check_parse_p [((Predicate.P "BADNAME", [|"X"|]), [])] "BADNAME(X).");
+                             (check_parse_p [((Predicate.P "BADNAME", Tuple.positional [|"X"|]), [])] "BADNAME(X).");
     "parse-warn-var-0" >:: check_with_warnings
                              ["L1 10: variable `z' violates naming conventions: should be uppercase"]
-                             (check_parse_p [(q("X"), [(Predicate.P "n", [|"z"|])])] "q(X) :- n(z).");
+                             (check_parse_p [(q("X"), [(Predicate.P "n", Tuple.positional [|"z"|])])] "q(X) :- n(z).");
     "parse-warn-var-1" >:: check_with_warnings
                              ["L1 2: variable `z' violates naming conventions: should be uppercase"]
-                             (check_parse_p [(q("z"), [(Predicate.P "n", [|"X"|])])] "q(z) :- n(X).");
+                             (check_parse_p [(q("z"), [(Predicate.P "n", Tuple.positional [|"X"|])])] "q(z) :- n(X).");
     "parse-neg" >:: check_parse_p [(q("X"), [Literal.neg (q("X"))])] "q(X) :- ~q(X).";
     "parse-neg-fail-head" >:: expect_errors [Errors.ParseError ((1, 0), Errors.Parser.msg_negative_head "~q(X)")]
                               (check_parse_p [(Literal.neg (q("X")), [(q("X"))])] "~q(X) :- q(X).");
@@ -128,20 +128,20 @@ let all_tests = "frontend" >:::
     "parse-p-lit-1" >:: check_parse_p [(q("X"), [assign(0,"23"); assign(1, "42"); p(tmpvar(0), tmpvar(1))])] "q(X) :- p(23, \"42\").";
     "parse-p-lit-2" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"42")])] "q(42).";
     "parse-p-lit-3" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"teatime")])] "q('teatime).";
-    "parse-p-builtin-0" >:: check_parse_p [(q("X"), [assign(0,"foobar"); (Primops.Sys.concat, [|"X"; "Y"; tmpvar(0)|])])] "q(X) :- sys-concat(X,Y,\"foobar\").";
+    "parse-p-builtin-0" >:: check_parse_p [(q("X"), [assign(0,"foobar"); (Primops.Sys.concat, Tuple.positional [|"X"; "Y"; tmpvar(0)|])])] "q(X) :- sys-concat(X,Y,\"foobar\").";
     "parse-builtin-fail-head" >:: expect_errors [Errors.ParseError ((1, 0), Errors.Parser.msg_primop_in_head "sys-length")]
-                                  (check_parse_p [((Primops.Sys.length, [|"X"|]), [(q("X"))])] "sys-length(X) :- q(X).");
-    "parse-p-eq-0" >:: check_parse_p [(q("X"), [assign(0,"foobar"); (Primops.Sys.eq, [|"X"; tmpvar(0)|])])] "q(X) :- =(X,\"foobar\").";
-    "parse-i-0" >:: check_parse_i [Program.DAddFact ("q", [|"1"|])] "+q(1).";
-    "parse-i-1" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1).";
+                                  (check_parse_p [((Primops.Sys.length, Tuple.positional [|"X"|]), [(q("X"))])] "sys-length(X) :- q(X).");
+    "parse-p-eq-0" >:: check_parse_p [(q("X"), [assign(0,"foobar"); (Primops.Sys.eq, Tuple.positional [|"X"; tmpvar(0)|])])] "q(X) :- =(X,\"foobar\").";
+    "parse-i-0" >:: check_parse_i [Program.DAddFact ("q", Tuple.positional [|"1"|])] "+q(1).";
+    "parse-i-1" >:: check_parse_i [Program.DDelFact ("q", Tuple.positional [|"1"|])] "-q(1).";
     "parse-i-2" >:: check_parse_i [Program.DRule (p("X", "Y"), [q("X"); q("Y")])] "p(X,Y) :- q(X), q(Y).";
     "parse-i-3" >:: check_parse_i [Program.DRule (p("X", "Y"), [q2("X", "Y"); q2("Y", "X")])] "p(X,Y) :- q(X, Y), q( Y, X  ).";
-    "parse-i-4" >:: check_parse_i [Program.DAddFact ("q", [|"1"|]); Program.DDelFact ("q", [|"2"|])] "+q(1). -q(2).";
+    "parse-i-4" >:: check_parse_i [Program.DAddFact ("q", Tuple.positional [|"1"|]); Program.DDelFact ("q", Tuple.positional [|"2"|])] "+q(1). -q(2).";
     "parse-i-5" >:: check_parse_i [Program.DQuery (query("X", "Y"), [q2("X", "Y"); q2("Y", "X")])] "?(X,Y) :- q(X, Y), q( Y, X  ).";
-    "parse-comment-0" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1 (* comment in the middle *)).";
-    "parse-comment-1" >:: check_parse_i [Program.DDelFact ("q", [|"1"|])] "-q(1) (* comment (* nested *) in the middle *).";
-    "parse-db-0" >:: check_parse_d [("q", [|"1"|]); ("q", [|"2"|])] "q(1) q(2)";
-    "parse-db-1" >:: check_parse_d [("q", [|"-1"|])] "q(-1)";
+    "parse-comment-0" >:: check_parse_i [Program.DDelFact ("q", Tuple.positional [|"1"|])] "-q(1 (* comment in the middle *)).";
+    "parse-comment-1" >:: check_parse_i [Program.DDelFact ("q", Tuple.positional [|"1"|])] "-q(1) (* comment (* nested *) in the middle *).";
+    "parse-db-0" >:: check_parse_d [("q", Tuple.positional [|"1"|]); ("q", Tuple.positional [|"2"|])] "q(1) q(2)";
+    "parse-db-1" >:: check_parse_d [("q", Tuple.positional [|"-1"|])] "q(-1)";
   ]
 
 let _ = run_test_tt_main (all_tests)

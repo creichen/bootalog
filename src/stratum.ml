@@ -30,25 +30,25 @@ type t =
     base	: BaseRule.t list;
     delta	: BaseRule.t list }
 
-    let show_n label stratum =
-      let show_rules rules =
-	String.concat "" (List.map (function rule -> "  " ^ BaseRule.show rule ^ "\n") rules)
-      in ("== " ^ label ^ "<" ^ (PredicateSet.show stratum.pss) ^ ">}\n"
-	  ^ "- base:\n"
-	  ^ (show_rules stratum.base)
-	  ^ "- delta:\n"
-	  ^ (show_rules stratum.delta))
+let show_n label stratum =
+  let show_rules rules =
+    String.concat "" (List.map (function rule -> "  " ^ BaseRule.show rule ^ "\n") rules)
+  in ("== " ^ label ^ "<" ^ (PredicateSet.show stratum.pss) ^ ">}\n"
+      ^ "- base:\n"
+      ^ (show_rules stratum.base)
+      ^ "- delta:\n"
+      ^ (show_rules stratum.delta))
 
-    let show = show_n ""
+let show = show_n ""
 
-    let normalise stratum =
-      { pss	= stratum.pss;
-	base	= List.sort BaseRule.compare stratum.base;
-	delta	= List.sort BaseRule.compare stratum.delta; }
+let normalise stratum =
+  { pss		= stratum.pss;
+    base	= List.sort BaseRule.compare stratum.base;
+    delta	= List.sort BaseRule.compare stratum.delta; }
 
-    let equal stratum0 stratum1 =
-      let s0 = normalise stratum0 in
-      let s1 = normalise stratum1
-      in (PredicateSet.equal s0.pss s1.pss
-	  && s0.base = s1.base
-	    && s0.delta = s1.delta)
+let equal stratum0 stratum1 =
+  let s0 = normalise stratum0 in
+  let s1 = normalise stratum1
+  in (PredicateSet.equal s0.pss s1.pss
+      && s0.base = s1.base
+	&& s0.delta = s1.delta)

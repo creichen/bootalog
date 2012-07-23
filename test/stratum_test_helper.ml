@@ -33,7 +33,7 @@ let psQ = Predicate.P "q"
 let psR = Predicate.P "r"
 let psS = Predicate.P "s"
 
-let pred psym (args : variable list) = (psym, Array.of_list args)
+let pred psym (args : variable list) = (psym, (Tuple.positional (Array.of_list args)))
 let pP = pred psP
 let pQ = pred psQ
 let pR = pred psR
@@ -51,7 +51,7 @@ let pConcat_ffb =
   in pred (Predicate.Linked ("sys-concat[ffb]", pid, amode.PI.evaluator))
 let pAssign v = pred (Predicate.Assign v)
 
-let dpred psym (args : variable list) = (Predicate.delta (psym), Array.of_list args)
+let dpred psym (args : variable list) = (Predicate.delta (psym), (Tuple.positional (Array.of_list args)))
 let dP = dpred psP
 let dQ = dpred psQ
 let dR = dpred psR
