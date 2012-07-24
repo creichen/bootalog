@@ -12,6 +12,7 @@ CMX_DEPS=../src/strlib.cmx ../src/getopt.cmx ../src/compare.cmx ../src/option.cm
 	../src/variable.cmx \
 	../src/atom.cmx \
 	../src/label.cmx \
+	../src/signature.cmx \
 	../src/var_set.cmx \
 	../src/tuple.cmx \
 	../src/predicate.cmx \

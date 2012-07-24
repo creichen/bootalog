@@ -261,23 +261,68 @@ let generic_parse lexbuf =
     then ("-" ^ expect_atom ())
     else expect_atom ()
 *)
-  and parse_tuple () : tuple =
-    begin
-      expect LOparen;
-      let result = parse_list LComma (accept_atom) "atom" (function () -> accept LCparen)
-      in (* labels: FIXME *) Tuple.positional (Array.of_list result)
-    end
-
   and parse_fact () : fact =
     let pred = expect_name ()
     in (pred, parse_tuple ())
 
-  and parse_base_literal_tail (pred) =
+  and accept_label () : Label.t =
+    match peek () with
+      LName n	-> begin
+	let old_pos = get_pos () in
+	let old_token = next ()
+	in match peek () with
+	  LColon	-> begin expect (LColon); Label.some n end
+	| LCdash	-> let new_pos = get_pos ()
+			   in begin expect (LCdash); push_back (new_pos, LMinus); Label.some n end
+	| _		-> begin push_back (old_pos, old_token); Label.none end
+      end
+    | _		-> Label.none
+
+  and parse_tuple_with_labels (element_descr) (accept_content : unit -> 'a option) : (Label.t array * 'a array) =
     begin
+      expect LOparen;
+      let rec parse_expecting_separator () : Label.t list * 'a list =
+	match peek () with
+	  LComma	-> begin
+	    expect (LComma);
+	    parse (false)
+	  end
+	| _		-> begin expect LCparen; ([], []) end
+      and parse (empty_allowed : bool) : Label.t list * 'a list =
+	match peek () with
+	  LCparen	-> if empty_allowed then begin
+                                                   expect LCparen;
+	                                           ([], [])
+                                                 end
+                                            else error ("')' after ','")
+	| _		-> begin
+	  let label = accept_label ()
+	  in match accept_content () with
+	    None	-> if empty_allowed then ([], []) else error (Printf.sprintf "Expected %s in list of %ss" element_descr element_descr)
+	  | Some value	-> let labels, values = (parse_expecting_separator ())
+			   in (label :: labels, value :: values)
+	end in
+      let (labels, names) = parse (true)
+      in begin
+	(Array.of_list labels, Array.of_list names)
+      end
+    end
+
+  and parse_tuple () : tuple =
+    parse_tuple_with_labels ("atom") (accept_atom)
+(*    begin
+      expect LOparen;
+      let result = parse_list LComma (accept_atom) "atom" (function () -> accept LCparen)
+      in (* labels: FIXME *) Tuple.positional (Array.of_list result)
+    end*)
+
+  and parse_base_literal_body (pred) =
+    (pred, parse_tuple_with_labels "variable" (accept_name_or_temp_atom))
+(*    begin
       expect LOparen;
       let body = parse_list LComma (accept_name_or_temp_atom) "name" (function () -> accept LCparen)
       in (pred, (* labels: FIXME *) Tuple.positional (Array.of_list body))
-    end
+    end*)
 
   and parse_predicate () : Predicate.t =
     match peek () with
@@ -289,7 +334,7 @@ let generic_parse lexbuf =
 
   and parse_base_literal () : literal =
     let neg = accept (LTilde) in
-    let body = parse_base_literal_tail (parse_predicate ())
+    let body = parse_base_literal_body (parse_predicate ())
     in if neg
       then Literal.neg (body)
       else body
@@ -323,7 +368,7 @@ let generic_parse lexbuf =
   and parse_interactive_query () : rule =
     begin
       expect LQuestionmark;
-      let head = parse_base_literal_tail (Predicate.query)
+      let head = parse_base_literal_body (Predicate.query)
       in parse_rule_tail (head)
     end
 

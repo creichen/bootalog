@@ -39,6 +39,7 @@ rule lex =
       | "."						{ ret LPeriod }
       | "?"						{ ret LQuestionmark }
       | ":-"						{ ret LCdash }
+      | ":"						{ ret LColon }
       | "+"						{ ret LPlus }
       | "-"						{ ret LMinus }
       | "="						{ ret LEqual }

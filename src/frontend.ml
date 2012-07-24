@@ -52,27 +52,71 @@ module ProgramFrontend =
 struct
   type t = {
     mutable rules : Rule.t list;
+    signatures : (Predicate.t, Signature.t) Hashtbl.t;
     mutable stratified_program : stratum list option;
   }
 
   let create () = {
     rules = [];
+    signatures = Hashtbl.create (47);
     stratified_program = None;
   }
 
   (* Performs semantic analysis of a rule wrt a program, as well as access path selection *)
-  let semantic_check (_program) (rule) =
-    let rule = Rule.normalise (rule)
-    in rule
+  let semantic_check (errlist : Errors.error list ref) (program) ((head, bodies) as rule) =
+    let check_literal (p, (labels, variables)) =
+      let errflag = ref false in
+      let err (error) =
+	begin
+	  errflag := true;
+	  errlist := error :: !errlist;
+	end
+      in begin
+	(try
+	   Signature.check_positional_after_nominal (labels)
+	 with
+	   Signature.Positional_after_nominal (label) -> err (Errors.PositionalAfterNominal (p, label, rule)));
+	if not !errflag
+	then begin
+	  Label.order_labels (variables) (labels);
+	  try
+	    let signat = Signature.from_labels (labels)
+	    in try if Hashtbl.find (program.signatures) (p) <> signat
+	      then errlist := (Errors.SignatureMismatch (p, Hashtbl.find program.signatures p, signat, rule) :: !errlist)
+	      with
+		Not_found -> Hashtbl.add program.signatures (p) (signat)
+	  with
+	    Signature.Duplicate_label (label) -> err (Errors.DuplicateLabel (p, label, rule))
+	end
+      end
 
-  let add (program : t) (rule : Rule.t) =
-    begin
-      program.rules <- (semantic_check (program) (rule)) :: program.rules;
-      program.stratified_program <- None;  (* insertion may have invalidated stratification *)
+    in begin
+      check_literal head;
+      List.iter (check_literal) bodies;
+      Rule.normalise (rule)
     end
 
-  let import (program) (rules) =
-    List.iter (add program) rules
+  (* internal use only *)
+  let some_adding (adder) (program : t) (entity_to_add) =
+    let errors = ref []
+    in begin
+      adder (errors) (program) (entity_to_add);
+      program.stratified_program <- None;  (* insertion may have invalidated stratification *)
+      match !errors with
+	[]	-> ()
+      | _	-> raise (Errors.ProgramError (!errors))
+    end
+
+  (* internal use only *)
+  let add_unsafe (errors) (program : t) (rule : Rule.t) =
+    program.rules <- (semantic_check (errors) (program) (rule)) :: program.rules
+
+  let add = some_adding (add_unsafe)
+
+  let import =
+    let do_add_multi (errors) (program : t) (rules : Rule.t list) =
+      List.iter (add_unsafe (errors) (program)) rules
+    in some_adding (do_add_multi)
 
   let singleton (rule) =
     let program = create()
@@ -94,5 +138,4 @@ struct
       stratify (program);
       Eval.eval (db) (Option.value_of (program.stratified_program));
     end
-
 end

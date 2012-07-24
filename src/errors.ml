@@ -28,6 +28,9 @@ type error =
   ParseError of ((* line *) int * (* column *) int) * (* message *) string
 | NoAccessPath of BaseRule.t
 | StratificationFailed of Predicate.t * (Predicate.t * BaseRule.t) list (* starting with a rule that has the predicate in the rhs, ending with it in the lhs *)
+| SignatureMismatch of Predicate.t * (* old *) Signature.t * (* new *) Signature.t * BaseRule.t
+| PositionalAfterNominal of Predicate.t * (* label *) string * BaseRule.t
+| DuplicateLabel of Predicate.t * (* label *) string * BaseRule.t
 
 exception ProgramError of error list
 
@@ -43,7 +46,17 @@ let show_pos (line, offset) = Printf.sprintf "L%d %d" line offset
 let show_error (error) =
   match error with
     ParseError (pos, message)		-> Printf.sprintf "%s: parse error: %s\n" (show_pos pos) message
-  | NoAccessPath (rule)			-> Printf.sprintf "Error in rule %s:\nCould not find viable access path" (BaseRule.show (rule))
+  | NoAccessPath (rule)			-> Printf.sprintf "Error: could not find viable access path\nRule: %s" (BaseRule.show (rule))
+  | SignatureMismatch (pred,
+		       old_sig, new_sig,
+		       rule)		-> Printf.sprintf "Error: signature mismatch for %s/%s:\nUsed as: %s/%s\nIn rule: %s"
+                                               (Predicate.show pred) (Signature.show old_sig) (Predicate.show pred) (Signature.show new_sig) (BaseRule.show rule)
+  | PositionalAfterNominal (pred,
+			    label,
+			    rule)	-> Printf.sprintf "Error: positional parameter occurs after nominal parameter:\nPredicate: %s\nLabel:     %s\nRule:      %s"
+                                               (Predicate.show pred) (label) (BaseRule.show rule)
+  | DuplicateLabel (pred, label, rule)	-> Printf.sprintf "Error: duplicate label:\nPredicate: %s\nLabel:     %s\nRule:      %s"
+                                               (Predicate.show pred) (label) (BaseRule.show rule)
   | StratificationFailed (pred,
 			  derivation)	-> let predlen p = String.length (Predicate.show p) in
 					   let max_predlen =
@@ -59,7 +72,7 @@ let show_error (error) =
 					     in predstr ^ (pad (max_predlen - (String.length predstr)))
 					   in
 					   let show_reason (p, rule) = Printf.sprintf "  %s in %s" (show_pred p) (BaseRule.show rule)
-					   in Printf.sprintf "Stratification failed:  predicate `%s' must be stratified but depends on itself via:\n%s"
+					   in Printf.sprintf "Error: stratification failed:  predicate `%s' must be stratified but depends on itself via:\n%s"
 					         (Predicate.show pred)
 						 (String.concat "\n" (List.map show_reason derivation))
 

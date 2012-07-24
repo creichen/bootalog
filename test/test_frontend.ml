@@ -92,6 +92,68 @@ let check_with_warnings (expected_warnings) (check) () =
     Parser.warning_reporter := Parser.default_warning_reporter;
   end
 
+let some = Label.some
+let none = Label.none
+
+module Semantic =
+  (* Semantic analysis checks *)
+  struct
+    module PFrontend = Frontend.ProgramFrontend
+    (* labelled *)
+    let p(a, b) : Literal.t = (Predicate.P "p", ([|some "a"; some "b"|], [|a; b|]))
+    let sig_p = Signature.make 0 ["a"; "b"]
+    let q(bar, foo, quux) : Literal.t = (Predicate.P "q", ([|some "bar"; some "foo"; some "quux"|], [|bar; foo; quux|]))
+    (* partially labelled or unlabelled *)
+    let r(x0, x1) : Literal.t = (Predicate.P "r", ([|none; none|], [|x0; x1|]))
+    let s(x0, a, b) : Literal.t = (Predicate.P "s", ([|none; some "a"; some "b"|], [|x0; a; b|]))
+    let sig_s = Signature.make 1 ["a"; "b"]
+
+    let x = "X"
+    let y = "Y"
+    let z = "Z"
+
+    let check (expected_rules) (string) () =
+      let program = PFrontend.create() in
+      let parsed_rules = Parser.parse_program (Lexing.from_string string) in
+      let show s = String.concat "; " (List.map Rule.show s)
+      in begin
+	PFrontend.import (program) (parsed_rules);
+	assert_equal (expected_rules) (PFrontend.rules program) ~printer:show;
+      end
+
+    let base = check [(p(y, x), [r(x, y)])] "p(a:Y, b:X) :- r(X, Y)."
+    let reorder0 = check [(p(x, y), [r(x, y)])] "p(b:Y, a:X) :- r(X, Y)."
+    let reorder1 = check [(r(x, y), [q(x, x, y)])] "r(X, Y) :- q(foo:X, quux:Y, bar:X)."
+    let reorder2 = check [(s(x, x, y), [r(x, y)])] "s(X, b:Y, a:X) :- r(X, Y)"
+
+    let err0 = expect_errors [Errors.DuplicateLabel(Predicate.P "s", "foo", ((Predicate.P "s", ([|some "foo"; some "foo"|], [|x; y|])), [r(x, y)]))]
+               (check [] "s(foo:X, foo:Y) :- r(X, Y).")
+
+    let err1 = expect_errors [Errors.PositionalAfterNominal(Predicate.P "s", "foo", ((Predicate.P "s", ([|some "foo"; none|], [|x; y|])), [r(x, y)]))]
+               (check [] "s(foo:X, Y) :- r(X, Y).")
+
+    let err2 = expect_errors [Errors.SignatureMismatch(Predicate.P "p", sig_p, Signature.make 0 ["a"; "c"], ((Predicate.P "p", ([|some "a"; some "c"|], [|y; x|])), [r(x, y)]))]
+               (check [] "p(a:Y, b:X) :- r(X, Y).  p(a:Y, c:X) :- r(X, Y).")
+
+    let err3 = expect_errors [Errors.SignatureMismatch(Predicate.P "p", sig_p, Signature.make 0 ["a"; "b"; "c"], ((Predicate.P "p", ([|some "a"; some "b"; some "c"|], [|y; x; x|])), [r(x, y)]))]
+               (check [] "p(a:Y, b:X) :- r(X, Y).  p(a:Y, b:X, c:X) :- r(X, Y).")
+
+    let err4 = expect_errors [Errors.SignatureMismatch(Predicate.P "p", sig_p, Signature.make 0 ["a"], ((Predicate.P "p", ([|some "a"|], [|y|])), [r(x, y)]))]
+               (check [] "p(a:Y, b:X) :- r(X, Y).  p(a:Y) :- r(X, Y).")
+
+    let err5 = expect_errors [Errors.SignatureMismatch(Predicate.P "p", sig_p, Signature.make 1 ["a"], ((Predicate.P "p", ([|none; some "a"|], [|x; y|])), [r(x, y)]))]
+               (check [] "p(a:Y, b:X) :- r(X, Y).  p(X, a:Y) :- r(X, Y).")
+
+    let err6 = expect_errors [Errors.SignatureMismatch(Predicate.P "s", sig_s, Signature.make 0 ["a"; "b"], (r(x, x), [(Predicate.P "s", ([|some "a"; some "b"|], [|x; y|]))]))]
+               (check [] "s(X, b:Y, a:X) :- r(X, Y).  r(X, X) :- s(b:Y, a:X).")
+
+    let err7 = expect_errors [Errors.SignatureMismatch(Predicate.P "s", sig_s, Signature.make 2 ["a"; "b"], (r(x, x), [(Predicate.P "s", ([|none; none; some "a"; some "b"|], [|x; y; x; y|]))]))]
+               (check [] "s(X, b:Y, a:X) :- r(X, Y).  r(X, X) :- s(X, Y, b:Y, a:X).")
+
+    let err8 = expect_errors [Errors.SignatureMismatch(Predicate.P "s", sig_s, Signature.make 2 ["b"], (r(x, x), [(Predicate.P "s", ([|none; none; some "b"|], [|x; y; y|]))]))]
+               (check [] "s(X, b:Y, a:X) :- r(X, Y).  r(X, X) :- s(X, Y, b:Y).")
+  end
+
 let all_tests = "frontend" >:::
   [
     "comma" >:: check_lex [LComma] ",";
@@ -124,6 +186,10 @@ let all_tests = "frontend" >:::
     "parse-neg" >:: check_parse_p [(q("X"), [Literal.neg (q("X"))])] "q(X) :- ~q(X).";
     "parse-neg-fail-head" >:: expect_errors [Errors.ParseError ((1, 0), Errors.Parser.msg_negative_head "~q(X)")]
                               (check_parse_p [(Literal.neg (q("X")), [(q("X"))])] "~q(X) :- q(X).");
+    "parse-labelled-0" >:: check_parse_p [((Predicate.P "foo", ([|some "b"|], [|"X"|])), [atom("X")])] "foo(b:X) :- atom(X).";
+    "parse-labelled-1" >:: check_parse_p [((Predicate.P "foo", ([|some "b"; some  "a"|], [|"X"; "Y"|])), [atom("X"); atom("Y")])] "foo(b:X, a:Y) :- atom(X), atom(Y).";
+    "parse-labelled-2" >:: check_parse_p [((Predicate.P "foo", ([|some "b"; none|], [|"X"; "Y"|])), [atom("X"); atom("Y")])] "foo(b:X, Y) :- atom(X), atom(Y).";  (* disallowed by semantic analysis, but should pass the parser *)
+    "parse-labelled-3" >:: check_parse_p [((Predicate.P "foo", ([|none; some "b"|], [|"X"; "Y"|])), [atom("X"); atom("Y")])] "foo(X, b:Y) :- atom(X), atom(Y).";
     "parse-p-lit-0" >:: check_parse_p [(q("X"), [assign(0,"42"); p("X", tmpvar(0))])] "q(X) :- p(X, 42).";
     "parse-p-lit-1" >:: check_parse_p [(q("X"), [assign(0,"23"); assign(1, "42"); p(tmpvar(0), tmpvar(1))])] "q(X) :- p(23, \"42\").";
     "parse-p-lit-2" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"42")])] "q(42).";
@@ -142,6 +208,19 @@ let all_tests = "frontend" >:::
     "parse-comment-1" >:: check_parse_i [Program.DDelFact ("q", Tuple.positional [|"1"|])] "-q(1) (* comment (* nested *) in the middle *).";
     "parse-db-0" >:: check_parse_d [("q", Tuple.positional [|"1"|]); ("q", Tuple.positional [|"2"|])] "q(1) q(2)";
     "parse-db-1" >:: check_parse_d [("q", Tuple.positional [|"-1"|])] "q(-1)";
+    "semantic-base" >:: Semantic.base;
+    "semantic-reorder0" >:: Semantic.reorder0;
+    "semantic-reorder1" >:: Semantic.reorder1;
+    "semantic-reorder2" >:: Semantic.reorder2;
+    "semantic-err0" >:: Semantic.err0;
+    "semantic-err1" >:: Semantic.err1;
+    "semantic-err2" >:: Semantic.err2;
+    "semantic-err3" >:: Semantic.err3;
+    "semantic-err4" >:: Semantic.err4;
+    "semantic-err5" >:: Semantic.err5;
+    "semantic-err6" >:: Semantic.err6;
+    "semantic-err7" >:: Semantic.err7;
+    "semantic-err8" >:: Semantic.err8;
   ]
 
 let _ = run_test_tt_main (all_tests)

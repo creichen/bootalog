@@ -25,6 +25,7 @@
 type t = string option
 
 let none : t = None
+let some (l) : t = Some l
 
 (* debugging only *)
 let show s =

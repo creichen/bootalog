@@ -29,6 +29,7 @@ DATALOG_OBJS=strlib.cmx getopt.cmx compare.cmx option.cmx \
 	variable.cmx \
 	atom.cmx \
 	label.cmx \
+	signature.cmx \
 	var_set.cmx \
 	tuple.cmx \
 	predicate.cmx \

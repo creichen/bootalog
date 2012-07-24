@@ -34,6 +34,7 @@ module Lexeme =
       | LQuestionmark
       | LPeriod
       | LCdash
+      | LColon
       | LPlus
       | LMinus
       | LEqual
@@ -52,6 +53,7 @@ module Lexeme =
 	| LQuestionmark	-> "?"
 	| LPeriod	-> "."
 	| LCdash	-> ":-"
+	| LColon	-> ":"
 	| LPlus		-> "+"
 	| LMinus	-> "-"
 	| LEqual	-> "="
