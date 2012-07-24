@@ -190,6 +190,7 @@ let all_tests = "frontend" >:::
     "parse-labelled-1" >:: check_parse_p [((Predicate.P "foo", ([|some "b"; some  "a"|], [|"X"; "Y"|])), [atom("X"); atom("Y")])] "foo(b:X, a:Y) :- atom(X), atom(Y).";
     "parse-labelled-2" >:: check_parse_p [((Predicate.P "foo", ([|some "b"; none|], [|"X"; "Y"|])), [atom("X"); atom("Y")])] "foo(b:X, Y) :- atom(X), atom(Y).";  (* disallowed by semantic analysis, but should pass the parser *)
     "parse-labelled-3" >:: check_parse_p [((Predicate.P "foo", ([|none; some "b"|], [|"X"; "Y"|])), [atom("X"); atom("Y")])] "foo(X, b:Y) :- atom(X), atom(Y).";
+    "parse-implicitly-labelled-0" >:: (check_parse_p [((Predicate.P "foo", ([|some "x"; some "foo"|], [|"X"; "FOO"|])), [atom("X")])] "foo(:X,:FOO) :- atom(X).");
     "parse-p-lit-0" >:: check_parse_p [(q("X"), [assign(0,"42"); p("X", tmpvar(0))])] "q(X) :- p(X, 42).";
     "parse-p-lit-1" >:: check_parse_p [(q("X"), [assign(0,"23"); assign(1, "42"); p(tmpvar(0), tmpvar(1))])] "q(X) :- p(23, \"42\").";
     "parse-p-lit-2" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"42")])] "q(42).";

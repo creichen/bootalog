@@ -83,16 +83,22 @@ let primops_list = ref []
 
 let primops_names = ref []
 
-let primops_table : (string, id) Hashtbl.t = Hashtbl.create 23
+let primops_table : (string, id) Hashtbl.t = Hashtbl.create 47
 
-let register (name : string) (modes : access_mode list) =
+let primops_signatures : (Predicate.t, Signature.t) Hashtbl.t = Hashtbl.create 47
+
+let register (name : string) (numargs : int) (named_args : string list) (modes : access_mode list) =
   let nr = !primops_nr
   in begin
     primops_nr := nr + 1;
     primops_list := modes :: !primops_list;
     primops_names := name :: !primops_names;
     Hashtbl.replace primops_table name nr;
-    Predicate.Primop (name, nr)
+    let predicate = Predicate.Primop (name, nr)
+    in begin
+      Hashtbl.replace primops_signatures (predicate) (Signature.make (numargs) (named_args));
+      predicate
+    end
   end
 
 let primop_id (predicate) =

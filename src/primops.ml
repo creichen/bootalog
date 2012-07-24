@@ -113,13 +113,13 @@ let ff = Free
 
 module Sys =
   struct
-    let eq = register "=" [
+    let eq = register "=" 2 [] [
       fmode [bb; ff] (write_cost 1) (* *) (function { get'; set'; cont'; clear' } -> begin set' 1 (get' 0); cont' (); clear' 1 end);
       fmode [ff; bb] (write_cost 1) (* *) (function { get'; set'; cont'; clear' } -> begin set' 0 (get' 1); cont' (); clear' 0 end);
       fmode [bb; bb] min_cost	    (* *) (function { get'; set'=_; cont'; clear'=_ } -> begin if get' 0 = get' 1 then cont' () end)
     ]
 
-    let concat = register "sys-concat" [
+    let concat = register "sys-concat" 2 ["concat"] [
       fmode [bb; bb; bb] min_cost (* *) (function { get'; set'=_; cont'; clear'=_ } -> begin if get'(0) ^ get'(1) = get'(2) then cont' () end);
       fmode [bb; bb; ff] (write_cost 3) (* *) (function { get'; set'; cont'; clear' } -> begin set' 2 (get'(0) ^ get'(1)); cont' (); clear'(2) end);
       fmode [bb; ff; bb] (write_cost 4) (* *) (function { get'; set'; cont'; clear' } -> begin
@@ -158,7 +158,7 @@ module Sys =
       end);
     ]
 
-    let length = register "sys-length" [
+    let length = register "sys-length" 1 ["length"] [
       fmode [bb; ff] (write_cost 3) (* *) (function { get'; set'; cont'; clear'} -> begin set'(1) (string_of_int (String.length(get'(0)))); cont' (); clear'(1) end);
       fmode [bb; bb] (write_cost 3) (* *) (function { get'; set'=_; cont'; clear'=_} -> begin if get'(1) = (string_of_int (String.length(get'(0)))) then cont' () end);
     ]
@@ -169,14 +169,14 @@ module Sys =
 
     let zero = num_of_int 0
 
-    let add = register "sys-add" [
+    let add = register "sys-add" 2 ["sum"] [
       fmode [bb; bb; bb] (write_cost 5) (* *) (function { get'; set'=_; cont'; clear'=_} -> begin if get'(2) = ntoa ((aton (get'(0))) +/ (aton (get'(1)))) then cont' () end);
       fmode [bb; bb; ff] (write_cost 4) (* *) (function { get'; set'; cont'; clear'} -> begin set'(2) (ntoa (aton (get'(0)) +/ aton (get'(1)))); cont' (); clear'(2) end);
       fmode [bb; ff; bb] (write_cost 4) (* *) (function { get'; set'; cont'; clear'} -> begin set'(1) (ntoa (aton (get'(2)) -/ aton (get'(0)))); cont' (); clear'(1) end);
       fmode [ff; bb; bb] (write_cost 4) (* *) (function { get'; set'; cont'; clear'} -> begin set'(0) (ntoa (aton (get'(2)) -/ aton (get'(1)))); cont' (); clear'(0) end);
     ]
 
-    let sub = register "sys-sub" [
+    let sub = register "sys-sub" 2 ["difference"] [
       fmode [bb; bb; bb] (write_cost 5) (* *) (function { get'; set'=_; cont'; clear'=_} -> begin if get'(2) = ntoa ((aton (get'(0))) -/ (aton (get'(1)))) then cont' () end);
       fmode [bb; bb; ff] (write_cost 4) (* *) (function { get'; set'; cont'; clear'} -> begin set'(2) (ntoa (aton (get'(0)) -/ aton (get'(1)))); cont' (); clear'(2) end);
       fmode [bb; ff; bb] (write_cost 4) (* *) (function { get'; set'; cont'; clear'} -> begin set'(1) (ntoa (aton (get'(0)) -/ aton (get'(2)))); cont' (); clear'(1) end);
@@ -195,21 +195,21 @@ module Sys =
     let check_div quotient ({ get'; set'=_; cont'; clear'=_ } as context) =
       do_div (function q -> begin if aton (get' quotient) =/ q then cont' () end) context
 
-    let mul = register "sys-mul" [
+    let mul = register "sys-mul" 2 ["product"] [
       fmode [bb; bb; bb] (write_cost 5) (* *) (function { get'; set'=_; cont'; clear'=_} -> begin if get'(2) = ntoa ((aton (get'(0))) */ (aton (get'(1)))) then cont' () end);
       fmode [bb; bb; ff] (write_cost 4) (* *) (function { get'; set'; cont'; clear'} -> begin set'(2) (ntoa (aton (get'(0)) */ aton (get'(1)))); cont' (); clear'(2) end);
       fmode [bb; ff; bb] (write_cost 4) (* *) (function c -> assign_div 1 c 2 0);
       fmode [ff; bb; bb] (write_cost 4) (* *) (function c -> assign_div 0 c 2 1);
     ]
 
-    let div = register "sys-div" [
+    let div = register "sys-div" 2 ["quotient"] [
       fmode [bb; bb; bb] (write_cost 5) (* *) (function c -> check_div 2 c 0 1);
       fmode [bb; bb; ff] (write_cost 4) (* *) (function c -> assign_div 2 c 0 1);
       fmode [bb; ff; bb] (write_cost 4) (* *) (function c -> assign_div 1 c 0 2);
       fmode [ff; bb; bb] (write_cost 4) (* *) (function { get'; set'; cont'; clear'} -> begin set'(0) (ntoa (aton (get'(2)) */ aton (get'(1)))); cont' (); clear'(0) end);
     ]
 
-    let modulo = register "sys-modulo" [
+    let modulo = register "sys-modulo" 2 ["remainder"] [
       fmode [bb; bb; bb] (write_cost 5) (* *) (function { get'; set'=_; cont'; clear'=_} -> begin
 	let divisor = aton (get'(1))
 	in if divisor >/ zero
@@ -226,19 +226,19 @@ module Sys =
 *)
     ]
 
-    let lt = register "sys-lt" [
+    let lt = register "sys-lt" 2 [] [
       fmode [bb; bb] (write_cost 3) (* *) (function { get'; set'=_; cont'; clear'=_} -> begin if (aton (get'(0))) </ (aton (get'(1))) then cont' () end);
     ]
 
-    let gt = register "sys-gt" [
+    let gt = register "sys-gt" 2 [] [
       fmode [bb; bb] (write_cost 3) (* *) (function { get'; set'=_; cont'; clear'=_} -> begin if (aton (get'(0))) >/ (aton (get'(1))) then cont' () end);
     ]
 
-    let le = register "sys-le" [
+    let le = register "sys-le" 2 [] [
       fmode [bb; bb] (write_cost 3) (* *) (function { get'; set'=_; cont'; clear'=_} -> begin if (aton (get'(0))) <=/ (aton (get'(1))) then cont' () end);
     ]
 
-    let ge = register "sys-ge" [
+    let ge = register "sys-ge" 2 [] [
       fmode [bb; bb] (write_cost 3) (* *) (function { get'; set'=_; cont'; clear'=_} -> begin if (aton (get'(0))) >=/ (aton (get'(1))) then cont' () end);
     ]
 

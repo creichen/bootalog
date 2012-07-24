@@ -36,6 +36,11 @@ let warning_reporter = ref (default_warning_reporter)
 
 type pos = int * int
 
+let predicate_of_name (name : string) =
+  if Primops.name_is_primop name
+  then Predicate.Primop (name, Primops.resolve (name))
+  else Predicate.P (name)
+
 let generic_parse lexbuf =
   let past_tokens : (pos * lexeme) list ref = ref [] in
   let line = ref 1 in
@@ -278,7 +283,7 @@ let generic_parse lexbuf =
       end
     | _		-> Label.none
 
-  and parse_tuple_with_labels (element_descr) (accept_content : unit -> 'a option) : (Label.t array * 'a array) =
+  and parse_tuple_with_labels (allow_shortcut_variables) (element_descr) (accept_content : unit -> 'a option) : (Label.t array * 'a array) =
     begin
       expect LOparen;
       let rec parse_expecting_separator () : Label.t list * 'a list =
@@ -295,6 +300,15 @@ let generic_parse lexbuf =
 	                                           ([], [])
                                                  end
                                             else error ("')' after ','")
+	| LColon	-> begin
+                             (* implicitly labelled parameter *)
+	                     if not allow_shortcut_variables
+			     then error (Printf.sprintf "Implicit labelling (prefix-`:') not allowed for %ss" element_descr);
+	                     expect (LColon);
+	                     let varname = expect_name ()
+			     in let labels, values = (parse_expecting_separator ())
+				in ((Label.some (String.lowercase varname)) :: labels, varname :: values)
+	                   end
 	| _		-> begin
 	  let label = accept_label ()
 	  in match accept_content () with
@@ -309,7 +323,7 @@ let generic_parse lexbuf =
     end
 
   and parse_tuple () : tuple =
-    parse_tuple_with_labels ("atom") (accept_atom)
+    parse_tuple_with_labels (false) ("atom") (accept_atom)
 (*    begin
       expect LOparen;
       let result = parse_list LComma (accept_atom) "atom" (function () -> accept LCparen)
@@ -317,7 +331,7 @@ let generic_parse lexbuf =
     end*)
 
   and parse_base_literal_body (pred) =
-    (pred, parse_tuple_with_labels "variable" (accept_name_or_temp_atom))
+    (pred, parse_tuple_with_labels  (true) ("variable") (accept_name_or_temp_atom))
 (*    begin
       expect LOparen;
       let body = parse_list LComma (accept_name_or_temp_atom) "name" (function () -> accept LCparen)
@@ -327,9 +341,11 @@ let generic_parse lexbuf =
   and parse_predicate () : Predicate.t =
     match peek () with
       LEqual	-> begin ignore (accept (LEqual)); Primops.Sys.eq end
-    | LName n	-> if Primops.name_is_primop n
-                   then Predicate.Primop (n, Primops.resolve (expect_name ()))
-                   else Predicate.P (check_predicate_conventions (expect_name ()))
+    | LName n	-> let result = predicate_of_name (expect_name())
+                   in begin
+		     ignore (check_predicate_conventions n);
+		     result
+                   end
     | _		-> error "Expected predicate name"
 
   and parse_base_literal () : literal =

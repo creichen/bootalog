@@ -25,6 +25,7 @@
 open Base
 open Program
 module DB = Database
+module PrimopInterface = Primop_interface
 
 module DBFrontend =
 struct
@@ -58,16 +59,25 @@ struct
 
   let create () = {
     rules = [];
-    signatures = Hashtbl.create (47);
+    signatures = Hashtbl.copy (PrimopInterface.primops_signatures);
     stratified_program = None;
   }
 
+  let signatures (program) =
+    let cc lhs rhs tail = (lhs, rhs) :: tail
+    in Hashtbl.fold (cc) program.signatures [] 
+
+  let get_signature (program) (pred) =
+    Hashtbl.find program.signatures pred
+
   (* Performs semantic analysis of a rule wrt a program, as well as access path selection *)
   let semantic_check (errlist : Errors.error list ref) (program) ((head, bodies) as rule) =
+    let had_error = ref false in
     let check_literal (p, (labels, variables)) =
       let errflag = ref false in
       let err (error) =
 	begin
+	  had_error := true;
 	  errflag := true;
 	  errlist := error :: !errlist;
 	end
@@ -82,7 +92,7 @@ struct
 	  try
 	    let signat = Signature.from_labels (labels)
 	    in try if Hashtbl.find (program.signatures) (p) <> signat
-	      then errlist := (Errors.SignatureMismatch (p, Hashtbl.find program.signatures p, signat, rule) :: !errlist)
+	      then err (Errors.SignatureMismatch (p, Hashtbl.find program.signatures p, signat, rule))
 	      with
 		Not_found -> Hashtbl.add program.signatures (p) (signat)
 	  with
@@ -93,7 +103,9 @@ struct
     in begin
       check_literal head;
       List.iter (check_literal) bodies;
-      Rule.normalise (rule)
+      if (!had_error)
+      then None
+      else Some (Rule.normalise (rule))
     end
 
   (* internal use only *)
@@ -109,7 +121,9 @@ struct
 
   (* internal use only *)
   let add_unsafe (errors) (program : t) (rule : Rule.t) =
-    program.rules <- (semantic_check (errors) (program) (rule)) :: program.rules
+    match semantic_check (errors) (program) (rule) with
+      None	-> ()
+    | Some r	-> program.rules <- r :: program.rules
 
   let add = some_adding (add_unsafe)
 

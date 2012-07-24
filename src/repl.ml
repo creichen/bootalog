@@ -28,7 +28,7 @@ open Getopt
 open Printf
 include Frontend
 
-let version = "0.2.1"
+let version = "0.2.2"
 
 let boilerplate = "bootalog v" ^ version ^ "\nCopyright (C) 2012 Christoph Reichenbach\n"
   ^ "This program is Free Software under the terms of the GNU General Public Licence, v2.0 (or later)\n"
@@ -140,6 +140,25 @@ let cmd_drop tablenames =
       else ierror (sprintf "Table `%s' not found" tablename)
   in List.iter drop tablenames
 
+let print_sig (pred, signat) =
+  Printf.printf "  %s/%s\n" (Predicate.show pred) (Signature.show signat)
+
+let cmd_signatures _ = begin
+    List.iter print_sig (ProgramFrontend.signatures (program));
+    flush (stdout);
+  end
+
+let cmd_signature (pred_list) =
+  let prpr (pred_name) =
+    try
+      let pred = Parser.predicate_of_name (pred_name)
+      in print_sig (pred, ProgramFrontend.get_signature (program) (pred))
+    with Not_found -> ierror (Printf.sprintf "Unknown predicate `%s'" pred_name)
+  in begin
+    List.iter prpr pred_list;
+    flush (stdout);
+  end
+
 let cmd_help _ =
   let p s = begin print_string s; print_string "\n" end in
   let stringify_args (arglist) =
@@ -171,17 +190,19 @@ let cmd_help _ =
     List.iter update_arg_stats (commands);
     p "Bootalog usage:";
     p "Add facts:";
-    p "  > +name(\"bootalog\").                                        (* Add a single fact to the relation `name' *)";
-    p "  > +tasty-food(\"chocolate\"). +tasty-food(\"ice cream\").       (* Add multiple facts *)";
-    p "  > +stringify-number(1, \"one\").		              (* Facts can be tuples. *)";
+    p "  > +name(\"bootalog\").                                             (* Add a single fact to the relation `name' *)";
+    p "  > +tasty-food(\"chocolate\"). +tasty-food(\"ice cream\").            (* Add multiple facts *)";
+    p "  > +stringify-number(1, \"one\").		                   (* Facts can be tuples. *)";
     p "Remove facts:";
-    p "  > -stringify-number(1, \"one\").                              (* You can remove undesired facts again. *)";
+    p "  > -stringify-number(1, \"one\").                                   (* You can remove undesired facts again. *)";
     p "Check facts:";
-    p "  > ?(X) :- name(X).                                          (* List all matching facts. *)";
+    p "  > ?(X) :- name(X).                                               (* List all matching facts. *)";
     p "";
     p "Add rules:";
-    p "  > ancestor(X, Y) :- parent(X, Y).                           (* all parents Y of X are also X' ancestors. *)";
-    p "  > ancestor(X, Y) :- ancestor(X, Z), ancestor(Z, Y).         (* any ancestor's ancestor Y is also X' ancestor. *)";
+    p "  > ancestor(X, Y) :- parent(X, Y).                                (* all parents Y of X are also X' ancestors. *)";
+    p "  > ancestor(X, Y) :- ancestor(X, Z), ancestor(Z, Y).              (* any ancestor's ancestor Y is also X' ancestor. *)";
+    p "  > joined(lhs:L, full:Z) :- v(L, R), sys-concat(L, R, concat:Z).  (* Concatenate two strings, store in labelled table. *)";
+    p "  > inc-a(SUM) :- a(X), sys-add(X, 1, :SUM).                       (* increment elements of a by 1 for inc-a. *)";
     p "";
     p "Commands:";
     List.iter pr_command (commands)
@@ -195,7 +216,9 @@ let commands = [
   "rules", cmd_rules, [], "List all current rules";
   "help", cmd_help, [], "Print command help";
   "version", cmd_version, [], "Print version and licencing information";
-  "drop", cmd_drop, ["table"], "Drops a table"
+  "drop", cmd_drop, ["table"], "Drops a table";
+  "signatures", cmd_signatures, [], "Prints the signatures of all known predicates";
+  "s", cmd_signature, ["predicate"], "Prints the signature of one predicate";
 ]
 
 let _ = commands_ref := commands
@@ -262,10 +285,10 @@ let repl () =
 	      pad (offset + 2);
 	      print_string "^"
 	    end;
-	  Printf.eprintf "L%d %d: parse error: %s\n" line offset message
+	  Printf.eprintf "L%d %d: parse error: %s\n%!" line offset message
       end
     | Errors.ProgramError (errorlist) ->
-      Printf.eprintf "%s\n" (Errors.show_errors errorlist)
+      Printf.eprintf "%s\n%!" (Errors.show_errors errorlist)
   in while (!running) do
       iter ()
     done

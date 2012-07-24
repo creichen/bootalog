@@ -49,6 +49,18 @@ let check_positional_after_nominal (label_array) =
     | _		-> check_nom "*dummy*" (la)
   in check_pos (Array.to_list label_array)
 
+let to_labels (signature) =
+  let rec make_nominal names =
+    match names with
+      []	-> []
+    | n::tl	-> Label.some n :: make_nominal tl
+  in
+  let rec make_positional n =
+    if n = 0
+    then make_nominal (signature.nominal)
+    else Label.none :: make_positional (n - 1)
+  in Array.of_list (make_positional (signature.positional))
+
 (* label array must be pre-sorted already *)
 let from_labels (label_array) =
   let check_sorted (last) (next) =
