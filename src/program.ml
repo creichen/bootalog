@@ -48,7 +48,7 @@ module Lexeme =
       match l with
 	  LAtom s	-> "\"" ^ (String.escaped s) ^ "\""
 	| LName s	-> s
-	| LWildcard	-> "-"
+	| LWildcard	-> "_"
 	| LComma	-> ","
 	| LQuestionmark	-> "?"
 	| LPeriod	-> "."

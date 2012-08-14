@@ -128,15 +128,21 @@ let generic_parse lexbuf =
 
   let temp_var_counter = ref 0 in
   let temp_body = ref [] in
-  let get_temp_var_for_assignment (atom) =
+  let get_wildcard () =
     let var = !temp_var_counter in
     let var_name = gen_temp_var_name (var)
     in begin
-      temp_body := (Predicate.Assign atom, ([| None |], [| var_name |])) :: !temp_body;
       temp_var_counter := var + 1;
       var_name
     end in
-  
+
+  let get_temp_var_for_assignment (atom) =
+    let var_name = get_wildcard ()
+    in begin
+      temp_body := (Predicate.Assign atom, ([| None |], [| var_name |])) :: !temp_body;
+      var_name
+    end in
+
   let get_temp_assignments () =
     let results = List.rev (!temp_body)
     in begin
@@ -162,17 +168,19 @@ let generic_parse lexbuf =
   let accept_name_or_temp_atom () =
     let checker other =
       match other with
-  	LName a	-> Some (check_variable_conventions (a))
-      | LAtom a	-> Some (get_temp_var_for_assignment (a))
-      | _	-> None
+  	LName a		-> Some (check_variable_conventions (a))
+      | LWildcard	-> Some (get_wildcard ())
+      | LAtom a		-> Some (get_temp_var_for_assignment (a))
+      | _		-> None
     in try_next checker
   in
 
   let accept_name () =
     let checker other =
       match other with
-  	LName a	-> Some a
-      | _	-> None
+  	LName a		-> Some a
+      | LWildcard	-> Some (get_wildcard ())
+      | _		-> None
     in try_next checker
   in
 

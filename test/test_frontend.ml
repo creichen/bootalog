@@ -195,6 +195,10 @@ let all_tests = "frontend" >:::
     "parse-p-lit-1" >:: check_parse_p [(q("X"), [assign(0,"23"); assign(1, "42"); p(tmpvar(0), tmpvar(1))])] "q(X) :- p(23, \"42\").";
     "parse-p-lit-2" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"42")])] "q(42).";
     "parse-p-lit-3" >:: check_parse_p [(q(tmpvar(0)), [assign(0,"teatime")])] "q('teatime).";
+    "parse-wildcard-0" >:: check_parse_p [(q("X"), [p("X", tmpvar(0))])] "q(X) :- p(X, _).";
+    "parse-wildcard-1" >:: check_parse_p [(q(tmpvar(0)), [p(tmpvar(1), tmpvar(2))])] "q(_) :- p(_, _).";
+    "parse-wildcard-2" >:: check_parse_p [(q(tmpvar(0)), [p(tmpvar(1), tmpvar(2))])] "q(_ignore) :- p(_ignore, _ignore).";
+    "parse-wildcard-3" >:: check_parse_p [(q(tmpvar(0)), [p(tmpvar(1), tmpvar(2))])] "q(_suffix) :- p(_can-be-anything, _really).";
     "parse-p-builtin-0" >:: check_parse_p [(q("X"), [assign(0,"foobar"); (Primops.Sys.concat, Tuple.positional [|"X"; "Y"; tmpvar(0)|])])] "q(X) :- sys-concat(X,Y,\"foobar\").";
     "parse-builtin-fail-head" >:: expect_errors [Errors.ParseError ((1, 0), Errors.Parser.msg_primop_in_head "sys-length")]
                                   (check_parse_p [((Primops.Sys.length, Tuple.positional [|"X"|]), [(q("X"))])] "sys-length(X) :- q(X).");
