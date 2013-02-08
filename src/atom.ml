@@ -22,7 +22,23 @@
 
 ***************************************************************************)
 
-type t = string
-let show (s : string) = s
-let dummy = ""
-let compare = String.compare
+type t
+
+type ptr  (* C pointer; used both for tables (Native_table.t) and for atoms (Atom.t). *)
+external show_ptr : ptr -> string = "caml_ptr_show"
+
+external from_ptr : ptr -> t = "%identity"
+external to_ptr : t -> ptr = "%identity"
+
+external from_string : string -> t = "caml_hc_hashcons"
+external to_string : t -> string = "caml_hc_extract_string"
+
+let show = to_string
+module Internal =
+struct
+  external init : unit -> unit = "caml_hc_init"
+end
+let () = Internal.init()
+let dummy = from_string("")
+
+external compare : t -> t -> int = "caml_ptr_compare"

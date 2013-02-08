@@ -94,12 +94,15 @@ module AccessMode =
 			    ([])
   end
 
+let afs = Atom.from_string
+let sfa = Atom.to_string
+
 module Adapter =
   struct
     open PI
     open Primops
 
-    let show_list l = "[" ^ (String.concat ", " l) ^ "]"
+    let show_list l = "[" ^ (String.concat ", " (List.map sfa l)) ^ "]"
 
     let test_cont () =
       let count = ref 0 in
@@ -120,38 +123,38 @@ module Adapter =
       let result = ref [] in
       let body { get=_; set; cont } =
 	begin
-	  set 1 "1a";
+	  set 1 (afs "1a");
 	  cont ();
-	  set 0 "0b";
-	  set 1 "1b";
+	  set 0 (afs "0b");
+	  set 1 (afs "1b");
 	  cont ();
 	end in
       let env = Env.fresh() in
       let mcont (env) = result := Env.find env "a" :: Env.find env "b" :: !result
       in begin
-	Env.bind env "a" "0";
+	Env.bind env "a" (afs "0");
 	adapter (body) [| "a"; "b" |] env mcont;
 	(* list has the events in reverse order, due to prepending *)
-	check_eq show_list ["0b"; "1b"; "0"; "1a"] (!result);
+	check_eq show_list (List.map afs ["0b"; "1b"; "0"; "1a"]) (!result);
       end
 
     let test_get () =
       let result = ref 0 in
       let body { get; set=_; cont } =
 	begin
-	  if get 0 = "yes"
+	  if get 0 = afs "yes"
 	  then cont ();
 	end in
       let env = Env.fresh() in
       let mcont (_) = result := 1;
       in begin
 	result := 0;
-	Env.bind env "a" "no";
+	Env.bind env "a" (afs "no");
 	adapter (body) [| "a" |] env mcont;
 	check_eq show_int 0 (!result);
 
 	result := 0;
-	Env.bind env "a" "yes";
+	Env.bind env "a" (afs "yes");
 	adapter (body) [| "a" |] env mcont;
 	check_eq show_int 1 (!result);
       end
@@ -252,7 +255,7 @@ module APath =
     let lconcat modestr (x, y, z) = positional
       (Predicate.Linked ("sys-concat["^modestr^"]", value_of (PI.primop_id Primops.Sys.concat), function _ -> function _ -> function _ -> ()),
        [|x; y; z|])
-    let assign (var, atom) = positional (Predicate.Assign atom, [|var|])
+    let assign (var, atom) = positional (Predicate.Assign (afs atom), [|var|])
 
     let show_tail tail =
       "[" ^ (String.concat ", " (List.map Literal.show tail)) ^ "]"

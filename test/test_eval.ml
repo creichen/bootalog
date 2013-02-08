@@ -34,7 +34,7 @@ let db elements =
   let add_table (psym, tuples) =
     let table = DB.get_table db psym in
     let add_tuple tuple =
-      Combined_table.insert table (Array.of_list (List.map (function _ -> Label.none) tuple), Array.of_list tuple)
+      Combined_table.insert table (Array.of_list (List.map (function _ -> Label.none) tuple), Array.of_list (List.map Atom.from_string tuple))
     in List.iter add_tuple tuples
   in begin
     List.iter add_table elements;
