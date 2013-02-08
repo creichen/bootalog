@@ -28,7 +28,7 @@ open Getopt
 open Printf
 include Frontend
 
-let version = "0.3.0"
+let version = "0.3.1"
 
 let boilerplate = "bootalog v" ^ version ^ "\nCopyright (C) 2012 Christoph Reichenbach\n"
   ^ "This program is Free Software under the terms of the GNU General Public Licence, v2.0 (or later)\n"
