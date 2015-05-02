@@ -47,11 +47,14 @@ DATALOG_OBJS=strlib.cmx getopt.cmx compare.cmx option.cmx \
 	access_path.cmx \
 	rule.cmx \
 	stratification.cmx \
+	table_support.cmx \
+	native_table.cmx \
 	simple_table.cmx combined_table.cmx database.cmx \
 	program.cmx lexer.cmx parser.cmx \
 	eval.cmx \
 	frontend.cmx \
-	repl.cmx
+	repl.cmx \
+	../native/src/libnsys.a
 
 bootalog: $(DATALOG_OBJS)
 	$(OCAMLOPT) -o ${BINARY} $(OCAMLFLAGS) $(DATALOG_OBJS) -linkpkg

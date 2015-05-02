@@ -29,7 +29,10 @@ type t =
     SimpleT of Simple_table.t
   | DeltaT of bool ref * Simple_table.t ref * Simple_table.t  (* tracks updates: flag if updated, middle element contains only updates *)
 
-let create () = SimpleT (Simple_table.create ())
+let name = "combined"
+
+let create (_) = SimpleT (Simple_table.create ())
+let drop () = ()  (* rely on gc *)
 let from_simple st = SimpleT st
 let create_delta (flag, delta, rhs) = DeltaT (flag, ref delta, rhs)
 let create_delta' (flag, delta, rhs) =
@@ -76,3 +79,5 @@ let remove table (tuple: tuple) : unit =
 let bind_all table (variables : Literal.body_t) (env : env) (continuation : env -> unit) : unit =
   match table with
       (SimpleT t | DeltaT (_, _, t)) -> Simple_table.bind_all t variables env continuation
+
+let drop _ = ()

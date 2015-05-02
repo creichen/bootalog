@@ -27,7 +27,7 @@ open Base
 module Lexeme =
   struct
     type lexeme =
-	LAtom of string
+	LAtom of atom
       | LName of string
       | LWildcard
       | LComma
@@ -46,7 +46,7 @@ module Lexeme =
 
     let show l =
       match l with
-	  LAtom s	-> "\"" ^ (String.escaped s) ^ "\""
+	  LAtom s	-> "\"" ^ (String.escaped (Atom.to_string s)) ^ "\""
 	| LName s	-> s
 	| LWildcard	-> "_"
 	| LComma	-> ","

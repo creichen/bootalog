@@ -76,7 +76,7 @@ let r() =
   (Predicate.P "r", Tuple.positional [||])
 
 let assign(var, value) =
-  (Predicate.Assign value, Tuple.positional [|tmpvar (var)|])
+  (Predicate.Assign (Atom.from_string (value)), Tuple.positional [|tmpvar (var)|])
 
 let check_with_warnings (expected_warnings) (check) () =
   let warnings_list = ref [] in
@@ -152,18 +152,21 @@ module Semantic =
                (check [] "s(X, b:Y, a:X) :- r(X, Y).  r(X, X) :- s(X, Y, b:Y).")
   end
 
+let latom s = LAtom (Atom.from_string s)
+let pos_tuple t = Tuple.positional (Array.map Atom.from_string t)
+
 let all_tests = "frontend" >:::
   [
     "comma" >:: check_lex [LComma] ",";
     "plus" >:: check_lex [LQuestionmark; LCdash; LPlus] " ? :- + ";
     "wildcard" >:: check_lex [LMinus; LPeriod; LWildcard] "- . _";
     "parenname" >:: check_lex [LOparen; LName "foo-bar"; LCparen] "(foo-bar)";
-    "arith" >:: check_lex [LAtom "0"; LPlus; LAtom "1"] "0+1";
-    "narith" >:: check_lex [LAtom "0"; LMinus; LAtom "1"] "0-1";
-    "atom" >:: check_lex [LAtom "foo"] " 'foo ";
-    "string0" >:: check_lex [LAtom "foo"] " \"foo\" ";
-    "string1" >:: check_lex [LAtom "fo\"o"] " \"fo\\\"o\" ";
-    "string2" >:: check_lex [LAtom "f\\o\"o"] " \"f\\\\o\\\"o\" ";
+    "arith" >:: check_lex [latom "0"; LPlus; latom "1"] "0+1";
+    "narith" >:: check_lex [latom "0"; LMinus; latom "1"] "0-1";
+    "atom" >:: check_lex [latom "foo"] " 'foo ";
+    "string0" >:: check_lex [latom "foo"] " \"foo\" ";
+    "string1" >:: check_lex [latom "fo\"o"] " \"fo\\\"o\" ";
+    "string2" >:: check_lex [latom "f\\o\"o"] " \"f\\\\o\\\"o\" ";
     "parse-p-0" >:: check_parse_p [(r(), [])] "r().";
     "parse-p-1" >:: check_parse_p [(q("X"), [])] "q(X) :- .";
     "parse-p-2" >:: check_parse_p [(p("X", "Y"), [q("X"); q("Y")])] "p(X,Y) :- q(X), q(Y).";
@@ -201,16 +204,16 @@ let all_tests = "frontend" >:::
     "parse-builtin-fail-head" >:: expect_errors [Errors.ParseError ((1, 0), Errors.Parser.msg_primop_in_head "sys-length")]
                                   (check_parse_p [((Primops.Sys.length, Tuple.positional [|"X"|]), [(q("X"))])] "sys-length(X) :- q(X).");
     "parse-p-eq-0" >:: check_parse_p [(q("X"), [assign(0,"foobar"); (Primops.Sys.eq, Tuple.positional [|"X"; tmpvar(0)|])])] "q(X) :- =(X,\"foobar\").";
-    "parse-i-0" >:: check_parse_i [Program.DAddFact ("q", Tuple.positional [|"1"|])] "+q(1).";
-    "parse-i-1" >:: check_parse_i [Program.DDelFact ("q", Tuple.positional [|"1"|])] "-q(1).";
+    "parse-i-0" >:: check_parse_i [Program.DAddFact ("q", pos_tuple [|"1"|])] "+q(1).";
+    "parse-i-1" >:: check_parse_i [Program.DDelFact ("q", pos_tuple [|"1"|])] "-q(1).";
     "parse-i-2" >:: check_parse_i [Program.DRule (p("X", "Y"), [q("X"); q("Y")])] "p(X,Y) :- q(X), q(Y).";
     "parse-i-3" >:: check_parse_i [Program.DRule (p("X", "Y"), [q2("X", "Y"); q2("Y", "X")])] "p(X,Y) :- q(X, Y), q( Y, X  ).";
-    "parse-i-4" >:: check_parse_i [Program.DAddFact ("q", Tuple.positional [|"1"|]); Program.DDelFact ("q", Tuple.positional [|"2"|])] "+q(1). -q(2).";
+    "parse-i-4" >:: check_parse_i [Program.DAddFact ("q", pos_tuple [|"1"|]); Program.DDelFact ("q", pos_tuple [|"2"|])] "+q(1). -q(2).";
     "parse-i-5" >:: check_parse_i [Program.DQuery (query("X", "Y"), [q2("X", "Y"); q2("Y", "X")])] "?(X,Y) :- q(X, Y), q( Y, X  ).";
-    "parse-comment-0" >:: check_parse_i [Program.DDelFact ("q", Tuple.positional [|"1"|])] "-q(1 (* comment in the middle *)).";
-    "parse-comment-1" >:: check_parse_i [Program.DDelFact ("q", Tuple.positional [|"1"|])] "-q(1) (* comment (* nested *) in the middle *).";
-    "parse-db-0" >:: check_parse_d [("q", Tuple.positional [|"1"|]); ("q", Tuple.positional [|"2"|])] "q(1) q(2)";
-    "parse-db-1" >:: check_parse_d [("q", Tuple.positional [|"-1"|])] "q(-1)";
+    "parse-comment-0" >:: check_parse_i [Program.DDelFact ("q", pos_tuple [|"1"|])] "-q(1 (* comment in the middle *)).";
+    "parse-comment-1" >:: check_parse_i [Program.DDelFact ("q", pos_tuple [|"1"|])] "-q(1) (* comment (* nested *) in the middle *).";
+    "parse-db-0" >:: check_parse_d [("q", pos_tuple [|"1"|]); ("q", pos_tuple [|"2"|])] "q(1) q(2)";
+    "parse-db-1" >:: check_parse_d [("q", pos_tuple [|"-1"|])] "q(-1)";
     "semantic-base" >:: Semantic.base;
     "semantic-reorder0" >:: Semantic.reorder0;
     "semantic-reorder1" >:: Semantic.reorder1;

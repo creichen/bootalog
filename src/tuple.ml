@@ -27,9 +27,10 @@ let show (labels, elts) =
   let showi (index : int) (atom : Atom.t) = Label.show_atom (Array.get labels index) (atom)
   in  "(" ^ (String.concat ", " (Array.to_list (Array.mapi showi elts))) ^ ")"
 
-(* In practice, the labels should be invariant over all tuples we're trying to sort, but
+(* Sorts a list of tuples.
+ * In practice, the labels should be invariant over all tuples we're trying to sort, but
  * we try to be general below. *)
-let sort = List.sort (Compare.join (Compare.array_collate Label.compare) (Compare.array_collate String.compare))
+let sort = List.sort (Compare.join (Compare.array_collate Label.compare) (Compare.array_collate Atom.compare))
 
 
 module Show =
