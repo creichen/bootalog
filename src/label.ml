@@ -35,7 +35,7 @@ let show s =
 
 let show_atom label atom =
   match label with
-    None	-> (Atom.show atom)
+    None	-> atom
   | Some l	-> l ^ ": " ^ (Atom.show atom)
 
 let show_var label var =

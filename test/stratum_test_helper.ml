@@ -49,7 +49,7 @@ let pConcat_ffb =
   let amodes = Primops.get (pid) in
   let amode = List.hd (PI.access_modes [PI.Free; PI.Free; PI.Bound] amodes)
   in pred (Predicate.Linked ("sys-concat[ffb]", pid, amode.PI.evaluator))
-let pAssign v = pred (Predicate.Assign (Atom.from_string (v)))
+let pAssign v = pred (Predicate.Assign v)
 
 let dpred psym (args : variable list) = (Predicate.delta (psym), (Tuple.positional (Array.of_list args)))
 let dP = dpred psP

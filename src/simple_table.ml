@@ -25,16 +25,13 @@
 open Base
 
 type t = (tuple, unit) Hashtbl.t
-let create (_) = Hashtbl.create (17)
-
-let name = "simple"
+let create () = Hashtbl.create (17)
 
 let contains table tuple = Hashtbl.mem table tuple
 
 let insert table tuple = Hashtbl.replace table tuple ()
 let insert' table tuple = insert table (Array.of_list tuple)
 let remove table tuple = Hashtbl.remove table tuple
-let drop () = ()  (* rely on gc *)
 
 let show table =
   let extract tuple _ body = (Tuple.show tuple) :: body
@@ -67,6 +64,55 @@ let show_tabular table =
      ^ ("  " ^ (String.make (String.length header) '-') ^ "\n")
      ^ String.concat "" (body_list)
 
-let bind_all = Table_support.bind_all (Hashtbl.iter) (contains)
+type bind_action =
+    Bind
+  | Check
 
-let drop _ = ()
+let bind_all table (labels, variables : Literal.body_t) env (continuation) =
+  let size = Array.length variables in
+  let actions = Array.create size Check in
+  let bound_vars = ref VarSet.empty in
+  let check_only = ref true in
+  let get_from_env i =
+    let var = Array.(*unsafe_*)get variables i in
+    try Env.find env var
+    with Not_found ->
+      begin
+	if not (VarSet.mem var (!bound_vars))
+	then begin
+	  Array.(*unsafe_*)set actions i Bind;
+	  bound_vars := VarSet.add var (!bound_vars);
+	  check_only := false;
+	end;
+	Atom.dummy
+      end
+  in
+  let values = Array.init size get_from_env in
+  let finish () = continuation env in
+  if !check_only
+  then
+    if contains table (labels, values)
+    then finish ()
+    else ()
+  else (* must iterate *)
+      begin
+	let try_tuple (_, tuple) () =
+	  let rec bind_at i =
+	    if i >= size
+	    then finish ()
+	    else
+	      let cont () = bind_at (i+1) in
+	      let v : atom = Array.(*unsafe_*)get tuple i in
+	      let var : variable = Array.(*unsafe_*)get variables i in
+	      match Array.(*unsafe_*)get actions i with
+		  Bind	-> begin Env.(*unsafe_*)bind env var v; cont() end
+		| Check	-> if v = Env.find env var then cont ()
+	  in bind_at 0
+	in
+	begin
+	  Hashtbl.iter try_tuple table;
+	  VarSet.iter (Env.unbind env) (!bound_vars);
+	end
+      end
+
+

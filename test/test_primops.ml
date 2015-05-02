@@ -32,11 +32,7 @@ let get_primop_evaluator primop_name vmodes =
   in (primop_name ^ "[" ^ (String.concat "" (List.map PI.show_variable_mode vmodes)) ^ "]",
       amode.PI.evaluator)
 
-let tafs = List.map Atom.from_string
-
-let test_eval' primop_name test_name vmodes input_tuple' output_tuples' =
-  let input_tuple = tafs input_tuple' in
-  let output_tuples = List.map tafs output_tuples' in
+let test_eval' primop_name test_name vmodes input_tuple output_tuples =
   let resolved_name, evaluator = get_primop_evaluator primop_name vmodes in
   let full_test_name = resolved_name ^ (if "" = test_name then "" else "-" ^ test_name) in
   let env = Env.fresh () in
@@ -59,7 +55,7 @@ let test_eval' primop_name test_name vmodes input_tuple' output_tuples' =
 			   end
       | _		-> failwith "vmodes and input_tuple disagree in relevant length"
     in aname 0 vmodes input_tuple in
-  let show_result result = "[" ^ (String.concat ", " (List.map Atom.show result)) ^ "]" in
+  let show_result result = "[" ^ (String.concat ", " result) ^ "]" in
   let show_results results = "< " ^ (String.concat " ; "  (List.map show_result results)) ^ " >" in
   let body = Array.of_list args in
   let outputs = List.rev (!output_extractor) in

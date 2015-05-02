@@ -30,15 +30,12 @@ CMX_DEPS=../src/strlib.cmx ../src/getopt.cmx ../src/compare.cmx ../src/option.cm
 	../src/access_path.cmx \
 	../src/rule.cmx \
 	../src/stratification.cmx \
-	../src/table_support.cmx \
-	../src/native_table.cmx \
 	../src/simple_table.cmx ../src/combined_table.cmx ../src/database.cmx \
 	../src/program.cmx ../src/lexer.cmx  ../src/parser.cmx \
 	../src/eval.cmx \
-	../src/frontend.cmx \
-	../native/src/libnsys.a
+	../src/frontend.cmx
 CMX_HELPERS=stratum_test_helper.cmx error_test_helper.cmx
-TESTS=test_getopt.test test_native.basetest test_table.test test_stratification.test test_eval.test \
+TESTS=test_getopt.test test_table.test test_eval.test test_stratification.test \
 	test_strlib.test test_frontend.test test_dynamic_programming.test \
 	test_access_modes.test test_primops.test test_labels.test
 
@@ -49,20 +46,16 @@ all: test
 test: prepare-test ${TESTS}
 
 prepare-test: ${CMX_HELPERS}
-	rm -f *.test *.basetest
+	rm -f *.test
 
 # Common rules
-.SUFFIXES: .ml .mli .cmo .cmi .cmx .test .basetest
+.SUFFIXES: .ml .mli .cmo .cmi .cmx .test
 
 .ml.cmo:
 	$(OCAMLC) $(OCAMLFLAGS) -c $<
 
 .ml.test:
 	$(OCAMLOPT) -o $@ $(OCAMLFLAGS) $(CMX_DEPS) $(CMX_HELPERS) $< -linkpkg
-	./$@
-
-.ml.basetest:
-	$(OCAMLOPT) -o $@ $(OCAMLFLAGS) $(CMX_DEPS) $< -linkpkg
 	./$@
 
 .mli.cmi:

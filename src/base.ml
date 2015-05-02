@@ -31,10 +31,6 @@ include Option
 type atom = Atom.t
 type tuple = Tuple.t
 
-type ptr = Atom.ptr
-let show_ptr = Atom.show_ptr
-external ptr_compare : ptr -> ptr -> int = "caml_ptr_compare"
-
 module BaseLiteral = Base_literal
 module BaseRule = Base_rule
 

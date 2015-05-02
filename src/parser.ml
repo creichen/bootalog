@@ -41,49 +41,6 @@ let predicate_of_name (name : string) =
   then Predicate.Primop (name, Primops.resolve (name))
   else Predicate.P (name)
 
-(* Has to be on toplevel to be polymorphic (argh) *)
-let parse_tuple_with_labels (peek, error, expect, expect_name, accept_label) (match_shortcut_variables : (string -> 'a) option) (element_descr : string) (accept_content : unit -> 'a option) : (Label.t array * 'a array) =
-    begin
-      expect LOparen;
-      let rec parse_expecting_separator () : Label.t list * 'a list =
-	match peek () with
-	  LComma	-> begin
-	    expect (LComma);
-	    parse (false)
-	  end
-	| _		-> begin expect LCparen; ([], []) end
-      and parse (empty_allowed : bool) : Label.t list * 'a list =
-	match peek () with
-	  LCparen	-> if empty_allowed then begin
-                                                   expect LCparen;
-	                                           ([], [])
-                                                 end
-                                            else error ("')' after ','")
-	| LColon	-> begin
-                             (* implicitly labelled parameter *)
-	  		     match match_shortcut_variables with
-			       None		-> error (Printf.sprintf "Implicit labelling (prefix-`:') not allowed for %ss" element_descr);
-			     | Some label_to_v	-> (
-	                       expect (LColon);
-	                       let varname = expect_name ()
-			       in let labels, values = (parse_expecting_separator ())
-				  in ((Label.some (String.lowercase varname)) :: labels, (label_to_v (varname)) :: values)
-			     )
-	                   end
-	| _		-> begin
-	  let label = accept_label ()
-	  in match accept_content () with
-	    None	-> if empty_allowed then ([], []) else error (Printf.sprintf "Expected %s in list of %ss" element_descr element_descr)
-	  | Some value	-> let labels, values = (parse_expecting_separator ())
-			   in (label :: labels, value :: (values))
-	end in
-      let (labels, names) = parse (true)
-      in begin
-	(Array.of_list labels, Array.of_list names)
-      end
-    end
-
-
 let generic_parse lexbuf =
   let past_tokens : (pos * lexeme) list ref = ref [] in
   let line = ref 1 in
@@ -164,7 +121,7 @@ let generic_parse lexbuf =
       | LMinus  -> (let sub = accept_atom ()
 		   in match sub with
 		     None	-> begin push_back (old_pos, LMinus); None end
-		   | Some a	-> Some (Atom.from_string ("-" ^ (Atom.to_string a))))
+		   | Some a	-> Some ("-" ^ a))
       | _	-> None
     in try_next checker
   in
@@ -213,7 +170,7 @@ let generic_parse lexbuf =
       match other with
   	LName a		-> Some (check_variable_conventions (a))
       | LWildcard	-> Some (get_wildcard ())
-      | LAtom a		-> Some (get_temp_var_for_assignment a)
+      | LAtom a		-> Some (get_temp_var_for_assignment (a))
       | _		-> None
     in try_next checker
   in
@@ -289,26 +246,6 @@ let generic_parse lexbuf =
       else result
   in
 
-
-  let accept_label () : Label.t =
-    match peek () with
-      LName n	-> begin
-	let old_pos = get_pos () in
-	let old_token = next ()
-	in match peek () with
-	  LColon	-> begin expect (LColon); Label.some n end
-	| LCdash	-> let new_pos = get_pos ()
-			   in begin expect (LCdash); push_back (new_pos, LMinus); Label.some n end
-	| _		-> begin push_back (old_pos, old_token); Label.none end
-      end
-    | _		-> Label.none
-  in
-
-  let parse_tuple_with_labels1 : ((string -> atom) option) -> (string) -> (unit -> atom option) -> (Label.t array * atom array) = parse_tuple_with_labels (peek, error, expect, expect_name, accept_label) in
-  let parse_tuple_with_labels2 : ((string -> string) option) -> (string) -> (unit -> string option) -> (Label.t array * string array) = parse_tuple_with_labels (peek, error, expect, expect_name, accept_label) in
-(*  let parse_tuple_with_labels2 : ((string -> string) option) -> (string) -> (unit -> string option) -> (Label.t array * string array) = parse_tuple_with_labelsX in*)
-
-
   (* Recursive descent parsers *)
   let rec parse_program () =
     begin
@@ -341,11 +278,73 @@ let generic_parse lexbuf =
     let pred = expect_name ()
     in (pred, parse_tuple ())
 
+  and accept_label () : Label.t =
+    match peek () with
+      LName n	-> begin
+	let old_pos = get_pos () in
+	let old_token = next ()
+	in match peek () with
+	  LColon	-> begin expect (LColon); Label.some n end
+	| LCdash	-> let new_pos = get_pos ()
+			   in begin expect (LCdash); push_back (new_pos, LMinus); Label.some n end
+	| _		-> begin push_back (old_pos, old_token); Label.none end
+      end
+    | _		-> Label.none
+
+  and parse_tuple_with_labels (allow_shortcut_variables) (element_descr) (accept_content : unit -> 'a option) : (Label.t array * 'a array) =
+    begin
+      expect LOparen;
+      let rec parse_expecting_separator () : Label.t list * 'a list =
+	match peek () with
+	  LComma	-> begin
+	    expect (LComma);
+	    parse (false)
+	  end
+	| _		-> begin expect LCparen; ([], []) end
+      and parse (empty_allowed : bool) : Label.t list * 'a list =
+	match peek () with
+	  LCparen	-> if empty_allowed then begin
+                                                   expect LCparen;
+	                                           ([], [])
+                                                 end
+                                            else error ("')' after ','")
+	| LColon	-> begin
+                             (* implicitly labelled parameter *)
+	                     if not allow_shortcut_variables
+			     then error (Printf.sprintf "Implicit labelling (prefix-`:') not allowed for %ss" element_descr);
+	                     expect (LColon);
+	                     let varname = expect_name ()
+			     in let labels, values = (parse_expecting_separator ())
+				in ((Label.some (String.lowercase varname)) :: labels, varname :: values)
+	                   end
+	| _		-> begin
+	  let label = accept_label ()
+	  in match accept_content () with
+	    None	-> if empty_allowed then ([], []) else error (Printf.sprintf "Expected %s in list of %ss" element_descr element_descr)
+	  | Some value	-> let labels, values = (parse_expecting_separator ())
+			   in (label :: labels, value :: values)
+	end in
+      let (labels, names) = parse (true)
+      in begin
+	(Array.of_list labels, Array.of_list names)
+      end
+    end
+
   and parse_tuple () : tuple =
-    parse_tuple_with_labels1 (None) ("atom") (accept_atom)
+    parse_tuple_with_labels (false) ("atom") (accept_atom)
+(*    begin
+      expect LOparen;
+      let result = parse_list LComma (accept_atom) "atom" (function () -> accept LCparen)
+      in (* labels: FIXME *) Tuple.positional (Array.of_list result)
+    end*)
 
   and parse_base_literal_body (pred) =
-    (pred, parse_tuple_with_labels2  (Some (function (s : string) -> s)) ("variable") (accept_name_or_temp_atom))
+    (pred, parse_tuple_with_labels  (true) ("variable") (accept_name_or_temp_atom))
+(*    begin
+      expect LOparen;
+      let body = parse_list LComma (accept_name_or_temp_atom) "name" (function () -> accept LCparen)
+      in (pred, (* labels: FIXME *) Tuple.positional (Array.of_list body))
+    end*)
 
   and parse_predicate () : Predicate.t =
     match peek () with

@@ -48,10 +48,10 @@ rule lex =
       | ")"						{ ret LCparen }
       | '_' ident_tail					{ ret LWildcard }
       | ident as i					{ ret (LName i) }
-      | '\'' (ident as i)				{ ret (LAtom (Atom.from_string i)) }
-      | posnum as n					{ ret (LAtom (Atom.from_string n)) }
-      | posnum '.' posnum as n				{ ret (LAtom (Atom.from_string n)) }
-      | '"' (( '\\' _ | [^ '\\' '"'])* as qs) '"'	{ ret (LAtom (Atom.from_string (Strlib.dequote qs))) }
+      | '\'' (ident as i)				{ ret (LAtom i) }
+      | posnum as n					{ ret (LAtom n) }
+      | posnum '.' posnum as n				{ ret (LAtom n) }
+      | '"' (( '\\' _ | [^ '\\' '"'])* as qs) '"'	{ ret (LAtom (Strlib.dequote qs)) }
       | [ ' ' '\t' '\r' '\n' ]+				{ lex lexbuf }
       | eof						{ ret (LEOF) }
       | _ as s						{ ret (LErrortoken ((0, 0), s)) }
