@@ -55,8 +55,8 @@ Bootalog takes basic Datalog and adds the following extensions:
  - naming convention violation warnings
  Version 0.3:
  - nominal parameters
- Version 0.4:
  - wildcards
+ Version 0.4:
  - events
  Version 0.5:
  - aggregation
@@ -197,7 +197,7 @@ through the following short form:
 variable name.
 
 
-Wildcards (v0.4)
+Wildcards (v0.3)
 ----------------
   We allow the character "_" to be used to denote a `fresh name' for
 variable binding purposes, as in:
