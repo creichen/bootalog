@@ -24,7 +24,6 @@
 
 {
 open Program.Lexeme
-open Strlib
 
 let ret v  = v
 

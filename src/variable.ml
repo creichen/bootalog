@@ -23,6 +23,5 @@
 ***************************************************************************)
 
 type t = string
-open String
 let compare = String.compare
 let show x = x

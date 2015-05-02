@@ -22,8 +22,6 @@
 
 ***************************************************************************)
 
-open Hashtbl
-
 type t = (Variable.t, Atom.t) Hashtbl.t
 
 let fresh () = Hashtbl.create (7)

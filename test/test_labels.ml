@@ -23,7 +23,6 @@
 ***************************************************************************)
 
 open OUnit
-open Printf
 
 let test_order (expected_values, expected_labels : string array * Label.t array) (values, labels : string array * Label.t array) () =
   let show l = "[|" ^ (String.concat ", " (Array.to_list l)) ^ "|]" in

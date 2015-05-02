@@ -22,8 +22,6 @@
 
 ***************************************************************************)
 
-open Base
-open Eval
 open Getopt
 open Printf
 include Frontend

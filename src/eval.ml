@@ -24,6 +24,7 @@
 
 open Base
 open Stratum
+module PredicateSet = Predicate_set
 
 type env = Env.t
 

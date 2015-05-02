@@ -23,9 +23,6 @@
 ***************************************************************************)
 
 open OUnit
-open Printf
-open Base
-open Stratification
 open Stratum_test_helper
 module DB = Database
 

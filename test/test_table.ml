@@ -24,7 +24,6 @@
 
 open Base
 open OUnit
-open Printf
 
 module SimpleTable = Simple_table
 module CombinedTable = Combined_table

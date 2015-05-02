@@ -23,7 +23,6 @@
 ***************************************************************************)
 
 open Base
-open Program
 module DB = Database
 module PrimopInterface = Primop_interface
 

@@ -23,10 +23,7 @@
 ***************************************************************************)
 
 open Base
-open Frontend
-open Program.Lexeme
 open OUnit
-open Error_test_helper
 module AP = Access_path
 module PI = Primop_interface
 
@@ -96,7 +93,6 @@ module AccessMode =
 
 module Adapter =
   struct
-    open PI
     open Primops
 
     let show_list l = "[" ^ (String.concat ", " l) ^ "]"
@@ -161,6 +157,9 @@ module Link =
   struct
     open Predicate
     open Literal
+    module PI = Primop_interface
+    module VarSet = Base.VarSet
+    let compare = Literal.compare
 
     let check_link_result actual expected =
       let show_link_result result =
@@ -202,6 +201,7 @@ module Expensive =
   struct
     open Predicate
     open Literal
+    module VarSet = Base.VarSet
 
     let check_cost vars literal expected_cost =
       check_eq PI.show_cost (estimate_access_cost (VarSet.of_list vars) (positional literal)) expected_cost

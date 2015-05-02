@@ -24,7 +24,6 @@
 
 open OUnit
 open Strlib
-open Printf
 
 let check_eq s0 s1 () =
   assert_equal s0 s1 ?msg:(Some ("Expected `"^s0^"' but got `"^s1^"'"))

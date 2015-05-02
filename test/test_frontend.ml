@@ -22,8 +22,6 @@
 
 ***************************************************************************)
 
-open Base
-open Frontend
 open Program.Lexeme
 open OUnit
 open Error_test_helper

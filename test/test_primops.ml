@@ -22,9 +22,6 @@
 
 ***************************************************************************)
 
-open Base
-open Frontend
-open Program.Lexeme
 open OUnit
 module PI = Primop_interface
 
