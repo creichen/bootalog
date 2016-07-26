@@ -50,19 +50,22 @@ let show_tabular table =
     in try
 	 Hashtbl.fold get_a_tuple table ()
       with Not_found -> ()
-  in let a_tuple = Option.value_of (!a_tuple) in
-  let extract_sizes tuple _ best_sizes = Tuple.Show.merge_string_sizes (Tuple.Show.string_sizes tuple) best_sizes in
-  let sizes = Hashtbl.fold extract_sizes table [] in
-  let sizes = Tuple.Show.merge_string_sizes (Tuple.Show.label_sizes (a_tuple)) (sizes) in
-  let sizes_up = List.map (function a -> a + 2) sizes in
-  let extract tuple _ body = ("  " ^ (Tuple.Show.show_padded_tuple sizes_up tuple) ^ "\n") :: body
-  in
-  let body_list : string list = Hashtbl.fold (extract) table [] in
-  let body_list = List.sort String.compare body_list in
-  let header = (Tuple.Show.show_padded_labels sizes_up a_tuple)
-  in   ("  " ^ header ^ "\n")
-     ^ ("  " ^ (String.make (String.length header) '-') ^ "\n")
-     ^ String.concat "" (body_list)
+  in match !a_tuple with
+    None         -> ""
+  | Some a_tuple -> (
+    let extract_sizes tuple _ best_sizes = Tuple.Show.merge_string_sizes (Tuple.Show.string_sizes tuple) best_sizes in
+    let sizes = Hashtbl.fold extract_sizes table [] in
+    let sizes = Tuple.Show.merge_string_sizes (Tuple.Show.label_sizes (a_tuple)) (sizes) in
+    let sizes_up = List.map (function a -> a + 2) sizes in
+    let extract tuple _ body = ("  " ^ (Tuple.Show.show_padded_tuple sizes_up tuple) ^ "\n") :: body
+    in
+    let body_list : string list = Hashtbl.fold (extract) table [] in
+    let body_list = List.sort String.compare body_list in
+    let header = (Tuple.Show.show_padded_labels sizes_up a_tuple)
+    in   ("  " ^ header ^ "\n")
+    ^ ("  " ^ (String.make (String.length header) '-') ^ "\n")
+    ^ String.concat "" (body_list)
+  )
 
 type bind_action =
     Bind
