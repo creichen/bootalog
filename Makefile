@@ -3,6 +3,9 @@ default: all
 all:	depend
 	(cd src; make)
 
+debug:	depend
+	(cd src; OCAMLFLAGS=-g make)
+
 test: all
 	(cd test; make test)
 
